@@ -1,0 +1,8 @@
+glob: "docs/**"
+rules:
+  - Architecture decisions must be recorded as ADRs in docs/adr/ before implementation begins.
+    Use the filename format NNNN-short-title.md (e.g. 0001-use-postgres.md).
+  - Each ADR must have: a status (proposed/accepted/superseded), context, decision, and consequences section.
+  - docs/architecture.md must be updated whenever a significant component is added or removed.
+  - Do not duplicate content between docs files — link instead.
+  - Keep docs/quality-gates.md in sync with the actual commands used in CI.

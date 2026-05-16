@@ -1,0 +1,62 @@
+# {{ project_name }}
+{% if author_name %}
+Author: {{ author_name }}
+{% endif %}
+{% if license == 'mit' %}
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+{% elif license == 'agpl' %}
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+{% elif license == 'proprietary' %}
+**Proprietary — all rights reserved.**
+{% endif %}
+
+## Quickstart
+
+<!-- TODO: replace with project-specific steps -->
+{% if python == 'root' %}
+```bash
+uv sync
+uv run poe all    # lint + typecheck + test
+```
+{% elif python == 'component' %}
+```bash
+cd backend
+uv sync
+uv run poe all    # lint + typecheck + test
+```
+{% endif %}
+
+## Development
+
+See [AGENTS.md](AGENTS.md) for the full agent workflow, documentation index, and CLI reference.
+{% if python != 'none' %}
+
+### Prerequisites
+
+- [uv](https://docs.astral.sh/uv/) ≥ 0.5
+- Python {{ python_version }} (managed by uv via `.python-version`)
+
+### Common commands
+
+| Command | Description |
+|---------|-------------|
+{% if python == 'root' %}
+| `uv run poe check` | Lint and type-check |
+| `uv run poe test` | Run test suite |
+| `uv run poe all` | Check + test |
+| `uv run poe fmt` | Auto-format code |
+{% elif python == 'component' %}
+| `cd backend && uv run poe check` | Lint and type-check |
+| `cd backend && uv run poe test` | Run test suite |
+| `cd backend && uv run poe all` | Check + test |
+| `cd backend && uv run poe fmt` | Auto-format code |
+{% endif %}
+{% endif %}
+{% if has_api %}
+
+### Running locally
+
+```bash
+make up    # starts docker compose stack
+```
+{% endif %}

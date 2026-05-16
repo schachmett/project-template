@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+{% if python != 'none' %}
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          python-version: "{{ python_version }}"
+
+      - name: Install dependencies
+        run: {% if python == 'component' %}cd backend && {% endif %}uv sync
+
+      - name: Run all checks
+        run: {% if python == 'component' %}cd backend && {% endif %}uv run poe check
+{% else %}
+      - name: Lint YAML
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              line-length: disable
+{% endif %}

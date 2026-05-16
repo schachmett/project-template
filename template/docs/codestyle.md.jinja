@@ -1,0 +1,66 @@
+# Code style
+{% if python != 'none' %}
+## Python
+
+Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}backend/pyproject.toml{% endif %}`.
+
+### Formatting
+
+- Line length: 100 characters
+- Quotes: double
+- Run `uv run poe fmt` to auto-format before committing
+
+### Linting
+
+Active ruff rule sets: `E`, `W`, `F`, `I` (isort), `B` (bugbear), `C4`, `UP`, `RUF`.
+
+### Types
+
+- pyright strict mode is enforced. Every public function must be fully annotated.
+- Prefer `X | None` over `Optional[X]` (Python 3.10+ union syntax).
+- Avoid `Any` unless wrapping untyped third-party code; annotate the boundary explicitly.
+- Use `TypeAlias` for complex type expressions that appear more than once.
+
+### Imports
+
+- Absolute imports only. No relative imports outside of `__init__.py`.
+- Import order managed by ruff/isort: stdlib → third-party → local.
+
+### Naming
+
+| Kind | Convention | Example |
+|------|-----------|---------|
+| Module | `snake_case` | `user_service.py` |
+| Class | `PascalCase` | `UserService` |
+| Function / method | `snake_case` | `get_user_by_id` |
+| Constant | `UPPER_SNAKE` | `MAX_RETRIES` |
+| Type alias | `PascalCase` | `UserId = NewType("UserId", int)` |
+
+### Error handling
+
+- Catch specific exceptions. Never `except Exception` without re-raising or logging with traceback.
+- Use custom exception classes that inherit from a project base exception for domain errors.
+{% endif %}
+
+## General
+
+### Commit messages
+
+```
+<type>(<scope>): <short summary>
+
+<optional body: why, not what>
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
+
+### Documentation
+
+- Update `docs/` alongside code changes.
+- Decisions go in `docs/adr/` before implementation — see [docs.yml](../.claude/rules/docs.yml).
+
+### Git hygiene
+
+- One logical change per commit.
+- No debug code, commented-out blocks, or `TODO` left in committed code (use issues instead).
+- No large binary files (enforced by pre-commit hook).

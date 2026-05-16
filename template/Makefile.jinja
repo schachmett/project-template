@@ -1,0 +1,26 @@
+.PHONY: test lint{% if has_api %} up{% endif %}
+
+{% if python == 'root' %}
+test:
+	uv run poe test
+
+lint:
+	uv run poe check
+{% elif python == 'component' %}
+test:
+	cd backend && uv run poe test
+
+lint:
+	cd backend && uv run poe check
+{% else %}
+test:
+	@echo "No test runner configured — add project-specific test command here"
+
+lint:
+	@echo "No linter configured — add project-specific lint command here"
+{% endif %}
+{% if has_api %}
+
+up:
+	docker compose up
+{% endif %}

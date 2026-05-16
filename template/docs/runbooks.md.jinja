@@ -1,0 +1,91 @@
+# Runbooks
+
+<!-- This file is only generated when has_api=true -->
+
+Step-by-step procedures for common operational tasks and incident response.
+
+---
+
+## Runbook template
+
+```
+## RB-NNN: <title>
+
+**Trigger:** <when to use this runbook>
+**Owner:** <team or role responsible>
+**Time estimate:** <rough time to complete>
+
+### Steps
+
+1. ...
+2. ...
+3. ...
+
+### Verification
+
+How to confirm the issue is resolved.
+
+### Escalation
+
+Who to contact if this runbook doesn't resolve the issue.
+```
+
+---
+
+## RB-001: Service is not responding
+
+**Trigger:** Health check fails or users report the service is unreachable.
+
+### Steps
+
+1. Check if the container is running:
+   ```bash
+   docker ps | grep {{ project_name }}
+   ```
+2. Check recent logs:
+   ```bash
+   docker logs --tail 100 <container-id>
+   ```
+3. <!-- TODO: add environment-specific recovery steps -->
+
+### Verification
+
+Health check returns 200:
+```bash
+curl -f <health-check-url>
+```
+
+### Escalation
+
+<!-- TODO: add escalation contact -->
+
+---
+
+## RB-002: Rollback to previous version
+
+**Trigger:** Bad deploy detected in production.
+
+### Steps
+
+1. Identify the last known good tag:
+   ```bash
+   # List recent tags
+{% if platform == 'forgejo' or platform == 'both' %}
+   fj release list
+{% else %}
+   gh release list
+{% endif %}
+   ```
+2. Pull and deploy the previous image:
+   ```bash
+   docker pull <registry>/<org>/{{ project_name }}:<previous-tag>
+   # TODO: add deploy command
+   ```
+
+### Verification
+
+Check that the service responds correctly and logs show the previous version.
+
+---
+
+<!-- Add more runbooks as operational knowledge accumulates -->

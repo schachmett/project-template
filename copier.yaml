@@ -1,0 +1,128 @@
+_subdirectory: template
+_templates_suffix: .jinja
+_min_copier_version: "9.0"
+
+_exclude:
+  # Conditional docs
+  - "{% if not has_api %}docs/operations.md{% endif %}"
+  - "{% if not has_api %}docs/runbooks.md{% endif %}"
+  # _py_root/ is a staging directory for Python project files.
+  # For python=root: _tasks moves contents to project root.
+  # For python=component: _tasks renames the whole dir to backend/.
+  # For python=none: excluded entirely.
+  - "{% if python == 'none' %}_py_root{% endif %}"
+  # Conditional Claude rules
+  - "{% if python == 'none' %}.claude/rules/python.yml{% endif %}"
+  # Conditional CI/CD platforms
+  - "{% if platform == 'github' %}.forgejo{% endif %}"
+  - "{% if platform == 'forgejo' %}.github{% endif %}"
+  # Conditional CD (only if has_api)
+  - "{% if not has_api %}.forgejo/workflows/cd.yml{% endif %}"
+  - "{% if not has_api %}.github/workflows/cd.yml{% endif %}"
+  # Conditional pre-commit
+  - "{% if hooks == 'none' %}.pre-commit-config.yaml{% endif %}"
+
+_tasks:
+  # python=root: unpack _py_root/ contents into project root
+  - command: >-
+      mv _py_root/pyproject.toml . &&
+      mv _py_root/.python-version . &&
+      mv _py_root/src . &&
+      mv _py_root/tests . &&
+      rm -rf _py_root
+    when: "{% if python == 'root' %}true{% endif %}"
+  # python=component: rename _py_root/ to backend/
+  - command: "mv _py_root backend"
+    when: "{% if python == 'component' %}true{% endif %}"
+
+# ── Questions ─────────────────────────────────────────────────────────────────
+
+project_name:
+  type: str
+  help: Project name (used in headings and as the default package name)
+
+author_name:
+  type: str
+  help: Author name (optional, leave blank to omit)
+  default: ""
+
+platform:
+  type: str
+  help: "Target platform: forgejo, github, or both"
+  choices:
+    - forgejo
+    - github
+    - both
+  default: forgejo
+
+forgejo_url:
+  type: str
+  help: "Forgejo instance URL, e.g. https://codeberg.org (no trailing slash)"
+  when: "{{ platform != 'github' }}"
+  default: ""
+
+python:
+  type: str
+  help: "Python support: root (flat layout), component (under backend/), or none"
+  choices:
+    - root
+    - component
+    - none
+  default: none
+
+python_version:
+  type: str
+  help: Python version
+  choices:
+    - "3.14"
+    - "3.13"
+    - "3.12"
+  default: "3.14"
+  when: "{{ python != 'none' }}"
+
+has_api:
+  type: bool
+  help: Does this project expose an HTTP API?
+  default: false
+
+has_cli:
+  type: bool
+  help: Does this project include a CLI entrypoint?
+  default: false
+
+license:
+  type: str
+  help: License
+  choices:
+    - mit
+    - agpl
+    - proprietary
+    - none
+  default: mit
+
+secrets:
+  type: str
+  help: "Secrets management: sops (encrypted files in repo), env-only (.env files), or none"
+  choices:
+    - sops
+    - env-only
+    - none
+  default: none
+
+hooks:
+  type: str
+  help: "Pre-commit hooks: minimal (whitespace/yaml/size), python (adds ruff), or none"
+  choices:
+    - minimal
+    - python
+    - none
+  default: minimal
+  validator: "{% if hooks == 'python' and python == 'none' %}hooks=python requires python != none{% endif %}"
+
+# ── Computed variables (never asked) ──────────────────────────────────────────
+
+package_name:
+  type: str
+  help: Python package name (snake_case of project_name)
+  default: "{{ project_name | lower | replace('-', '_') | replace(' ', '_') | replace('.', '_') }}"
+  when: false

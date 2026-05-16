@@ -1,0 +1,55 @@
+# Architecture
+
+<!-- TODO: describe the system. Suggested sections below — keep, remove, or adapt as needed. -->
+
+## Overview
+
+<!-- One paragraph: what does this system do and what are its main moving parts? -->
+
+## Component diagram
+
+<!-- ASCII or Mermaid diagram of components and their relationships -->
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│          {{ project_name }}             │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+## Components
+{% if python != 'none' %}
+
+### `{{ package_name }}`
+
+Python package at `{% if python == 'root' %}src/{{ package_name }}{% else %}backend/src/{{ package_name }}{% endif %}/`.
+
+<!-- Describe what this package is responsible for. -->
+{% endif %}
+{% if has_api %}
+
+### API
+
+<!-- Describe the API surface: protocol, auth, main endpoints or RPC methods. -->
+{% endif %}
+{% if has_cli %}
+
+### CLI
+
+<!-- Describe the CLI: primary commands and their purpose. -->
+{% endif %}
+
+## Key dependencies
+
+| Dependency | Purpose |
+|------------|---------|
+| <!-- name --> | <!-- why --> |
+
+## Data flow
+
+<!-- Describe how data moves through the system. -->
+
+## Decision log
+
+Significant architectural decisions are recorded in [docs/adr/](adr/). Read these before proposing structural changes.

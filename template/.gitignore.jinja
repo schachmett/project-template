@@ -1,0 +1,36 @@
+# Ephemeral agent artifacts
+.ai/
+
+# Editor and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*~
+{% if python != 'none' %}
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+.cache/
+.pytest_cache/
+.ruff_cache/
+.pyright/
+htmlcov/
+.coverage*
+{% endif %}
+{% if secrets == 'env-only' %}
+
+# Secrets
+.env
+.env.local
+.env.*.local
+{% endif %}
+{% if has_api %}
+
+# Docker
+*.log
+{% endif %}

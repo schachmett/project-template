@@ -1,0 +1,98 @@
+# Agent workflow
+
+## Branch naming
+
+```
+<type>/<short-description>
+```
+
+Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
+
+Examples:
+- `feat/user-auth`
+- `fix/null-pointer-on-empty-input`
+- `docs/update-api-reference`
+
+Always branch from `main`. Keep branches short-lived.
+
+## Issue and PR workflow
+
+{% if platform in ('forgejo', 'both') %}
+### Forgejo (`fj`)
+
+```bash
+# List open issues
+fj issue list
+
+# Create an issue
+fj issue create --title "..." --body "..."
+
+# Create a PR from current branch
+fj pr create --title "..." --body "..." --base main
+
+# List open PRs
+fj pr list
+
+# Merge a PR (after CI passes)
+fj pr merge <number> --squash
+
+# Create a release tag (triggers CD)
+fj release create v1.2.3 --title "v1.2.3" --notes "..."
+```
+{% endif %}
+{% if platform in ('github', 'both') %}
+### GitHub (`gh`)
+
+```bash
+# List open issues
+gh issue list
+
+# Create an issue
+gh issue create --title "..." --body "..."
+
+# Create a PR from current branch
+gh pr create --title "..." --body "..." --base main
+
+# List open PRs
+gh pr list
+
+# Merge a PR (after CI passes)
+gh pr merge <number> --squash
+
+# Create a release tag (triggers CD)
+gh release create v1.2.3 --title "v1.2.3" --notes "..."
+```
+{% endif %}
+
+## Label conventions
+
+| Label | Meaning |
+|-------|---------|
+| `bug` | Something is broken |
+| `feature` | New capability |
+| `docs` | Documentation only |
+| `refactor` | Internal change, no behaviour change |
+| `breaking` | Breaks backwards compatibility |
+| `blocked` | Waiting on external dependency |
+
+## PR checklist
+
+Before opening a PR:
+
+1. All quality gates pass locally (see [quality-gates.md](quality-gates.md))
+2. PR description explains *why*, not just *what*
+3. Breaking changes are labelled `breaking` and noted in the PR body
+4. Any new architectural decisions are recorded in `docs/adr/`
+
+## Releases
+
+Releases are triggered by pushing a version tag:
+
+```bash
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+This triggers the CD workflow{% if has_api %} which builds and pushes the Docker image{% endif %}.
+
+Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

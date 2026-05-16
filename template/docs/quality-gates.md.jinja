@@ -1,0 +1,103 @@
+# Quality gates
+
+Run all checks before opening a PR. CI enforces the same commands.
+{% if python != 'none' %}
+## Commands
+{% if python == 'root' %}
+```bash
+uv run poe check         # full CI suite: format-check + lint + typecheck + test with coverage
+
+uv run poe fix           # auto-fix: format + lint --fix (safe to run anytime)
+uv run poe test          # run tests only (no coverage, faster)
+uv run poe test_cov      # run tests with coverage report
+uv run poe lint          # ruff check only
+uv run poe typecheck     # pyright only
+```
+{% else %}
+```bash
+cd backend
+
+uv run poe check         # full CI suite: format-check + lint + typecheck + test with coverage
+
+uv run poe fix           # auto-fix: format + lint --fix (safe to run anytime)
+uv run poe test          # run tests only (no coverage, faster)
+uv run poe test_cov      # run tests with coverage report
+uv run poe lint          # ruff check only
+uv run poe typecheck     # pyright only
+```
+{% endif %}
+
+## CI mapping
+
+| Local command | CI step |
+|---------------|---------|
+| `poe format_check` | `ruff format --check` |
+| `poe lint` | `ruff check` |
+| `poe typecheck` | `pyright` |
+| `poe test_cov` | `pytest --cov` |
+| `poe check` | full `quality` job (all of the above) |
+
+## What CI checks
+
+1. **Format** — ruff format verifies consistent formatting (no auto-fix in CI)
+2. **Lint** — ruff with `select = ["ALL"]`; see `pyproject.toml` for the ignore list
+3. **Typecheck** — pyright strict; no implicit `Any`, all public functions annotated
+4. **Tests** — pytest with branch coverage
+
+CI runs on every push and every pull request.
+{% else %}
+## Commands
+
+```bash
+make lint    # project-specific linting
+make test    # project-specific tests
+```
+
+<!-- TODO: add project-specific quality gate commands and their CI equivalents -->
+
+## CI mapping
+
+| Local command | CI step |
+|---------------|---------|
+| `make lint` | YAML lint, trailing whitespace |
+| `make test` | (project-specific) |
+{% endif %}
+
+## Pre-commit hooks
+{% if hooks == 'none' %}
+No pre-commit hooks are configured for this project.
+{% else %}
+Pre-commit hooks run automatically on `git commit`.
+
+```bash
+# Install hooks after cloning
+pre-commit install
+
+# Run manually against all files
+pre-commit run --all-files
+```
+
+Active hooks:
+
+| Hook | What it checks |
+|------|---------------|
+| `trailing-whitespace` | No trailing spaces |
+| `end-of-file-fixer` | Files end with newline |
+| `check-yaml` | Valid YAML syntax |
+| `check-added-large-files` | No accidental large file commits |
+{% if hooks == 'python' %}
+| `ruff` | Python lint (with auto-fix) |
+| `ruff-format` | Python formatting |
+| `pyright` | Python type checking |
+{% endif %}
+{% endif %}
+
+## Definition of done
+
+A change is ready to merge when:
+
+- [ ] `poe check` (or equivalent) passes locally
+- [ ] New behaviour has test coverage
+- [ ] Any new architectural decision is recorded in `docs/adr/`
+- [ ] `docs/` updated if the change affects documented behaviour
+- [ ] CI is green on the PR

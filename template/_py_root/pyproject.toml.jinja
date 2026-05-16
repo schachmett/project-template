@@ -1,0 +1,118 @@
+[project]
+name = "{{ package_name }}"
+dynamic = ["version"]
+description = ""
+readme = "README.md"
+requires-python = ">={{ python_version }}"
+{% if license == 'mit' %}
+license = "MIT"
+{% elif license == 'agpl' %}
+license = "AGPL-3.0-or-later"
+{% endif %}
+{% if author_name %}
+authors = [{ name = "{{ author_name }}" }]
+{% endif %}
+dependencies = []
+{% if has_cli %}
+
+[project.scripts]
+{{ project_name }} = "{{ package_name }}.cli:main"
+{% endif %}
+
+[dependency-groups]
+dev = [
+  "coverage[toml]",
+  "poethepoet>=0.40.0",
+  "pytest>=9.0.0",
+  "pytest-cov",
+  "ruff>=0.14",
+  "pyright",
+{% if hooks != 'none' %}
+  "pre-commit",
+{% endif %}
+]
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch]
+version.source = "vcs"
+
+[tool.uv]
+cache-dir = "./.cache/uv"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/{{ package_name }}"]
+
+[tool.poe.tasks]
+format       = "ruff format"
+format_check = "ruff format --check"
+lint_fix     = "ruff check --fix"
+lint         = "ruff check"
+typecheck    = "pyright"
+test         = "pytest"
+test_cov     = "pytest --cov --cov-report=term --cov-report=html"
+fix          = ["format", "lint_fix"]
+check        = ["format_check", "lint", "typecheck", "test_cov"]
+
+[tool.pytest.ini_options]
+strict = true
+addopts = ["--color=yes", "-x", "--failed-first"]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.coverage]
+run.source = ["src"]
+run.branch = true
+run.parallel = true
+report.exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
+report.skip_covered = true
+report.precision = 1
+html.directory = "htmlcov"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+lint.select = ["ALL"]
+lint.extend-safe-fixes = ["TC001", "TC002", "TC003", "TC004"]
+lint.future-annotations = true
+lint.ignore = [
+  "CPY",    # missing copyright notice
+  "G004",   # f-strings in log messages
+  "FIX",    # presence of fixme/todo markers
+  "TD",     # todo formatting
+  "EM",     # error message string formatting
+  "DOC",    # pydoclint
+  "D",      # pydocstyle
+  "TRY003", # long exception messages
+  # conflicting with ruff formatter — https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
+  "W191", "E111", "E114", "E117", "D206", "D300",
+  "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
+]
+lint.per-file-ignores = { "tests/*.py" = [
+  "INP001",  # missing __init__.py
+  "ARG002",  # unused method argument (fixtures)
+  "S101",    # asserts allowed in tests
+  "ANN001",  # missing argument annotation
+  "ANN201",  # missing return annotation
+  "ANN202",  # missing return annotation (private)
+  "SLF001",  # private member access
+  "PLR2004", # magic values in comparisons
+], "tests/**/*.py" = [
+  "INP001", "ARG002", "S101", "ANN001", "ANN201", "ANN202", "SLF001", "PLR2004",
+] }
+lint.flake8-type-checking.runtime-evaluated-base-classes = [
+  "pydantic.BaseModel",
+]
+lint.pylint.max-args = 7
+
+[tool.pyright]
+include = ["src", "tests"]
+ignore = ["**/__pycache__", ".venv"]
+reportPrivateUsage = "none"
+typeCheckingMode = "strict"
+pythonVersion = "{{ python_version }}"
+pythonPlatform = "Linux"
+venvPath = "."
+venv = ".venv"

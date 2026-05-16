@@ -1,0 +1,32 @@
+name: CD
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to Forgejo container registry
+        uses: docker/login-action@v3
+        with:
+          registry: {{ forgejo_url | replace('https://', '') | replace('http://', '') }}
+          username: ${{ '{{' }} secrets.REGISTRY_USERNAME {{ '}}' }}
+          password: ${{ '{{' }} secrets.REGISTRY_PASSWORD {{ '}}' }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            {{ forgejo_url | replace('https://', '') | replace('http://', '') }}/${{ '{{' }} github.repository {{ '}}' }}:${{ '{{' }} github.ref_name {{ '}}' }}
+            {{ forgejo_url | replace('https://', '') | replace('http://', '') }}/${{ '{{' }} github.repository {{ '}}' }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
