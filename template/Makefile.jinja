@@ -1,23 +1,47 @@
-.PHONY: test lint{% if has_api %} up{% endif %}
-
 {% if python == 'root' %}
-test:
-	uv run poe test
-
-lint:
-	uv run poe check
+_UV := uv run
+_CD :=
 {% elif python == 'component' %}
-test:
-	cd backend && uv run poe test
+_UV := cd backend && uv run
+_CD := cd backend &&
+{% endif %}
+
+{% if python != 'none' %}
+.PHONY: fmt fmt-check lint lint-fix typecheck test test-cov fix check{% if has_api %} up{% endif %}
+
+fmt:
+	$(_UV) ruff format
+
+fmt-check:
+	$(_UV) ruff format --check
 
 lint:
-	cd backend && uv run poe check
+	$(_UV) ruff check
+
+lint-fix:
+	$(_UV) ruff check --fix
+
+typecheck:
+	$(_UV) pyright
+
+test:
+	$(_UV) pytest
+
+test-cov:
+	$(_UV) pytest --cov --cov-report=term --cov-report=html
+
+fix: fmt lint-fix
+
+check: fmt-check lint typecheck test-cov
 {% else %}
-test:
-	@echo "No test runner configured — add project-specific test command here"
+.PHONY: check{% if has_api %} up{% endif %}
 
-lint:
-	@echo "No linter configured — add project-specific lint command here"
+check:
+{% if hooks != 'none' %}
+	pre-commit run --all-files
+{% else %}
+	@echo "No checks configured — add project-specific targets here"
+{% endif %}
 {% endif %}
 {% if has_api %}
 

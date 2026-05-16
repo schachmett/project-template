@@ -3,39 +3,38 @@
 Run all checks before opening a PR. CI enforces the same commands.
 {% if python != 'none' %}
 ## Commands
-{% if python == 'root' %}
+
 ```bash
-uv run poe check         # full CI suite: format-check + lint + typecheck + test with coverage
+{% if python == 'component' %}cd backend && {% endif %}uv sync        # install / sync dependencies
 
-uv run poe fix           # auto-fix: format + lint --fix (safe to run anytime)
-uv run poe test          # run tests only (no coverage, faster)
-uv run poe test_cov      # run tests with coverage report
-uv run poe lint          # ruff check only
-uv run poe typecheck     # pyright only
+make check      # full CI suite: format-check + lint + typecheck + test with coverage
+make fix        # auto-fix: ruff format + ruff check --fix (safe to run anytime)
+make test       # run tests only (no coverage, faster)
+make test-cov   # run tests with coverage report
+make lint       # ruff check only
+make typecheck  # pyright only
 ```
-{% else %}
+
+Underlying commands (run via `uv run` in the project{% if python == 'component' %}'s `backend/` directory{% endif %}):
+
 ```bash
-cd backend
-
-uv run poe check         # full CI suite: format-check + lint + typecheck + test with coverage
-
-uv run poe fix           # auto-fix: format + lint --fix (safe to run anytime)
-uv run poe test          # run tests only (no coverage, faster)
-uv run poe test_cov      # run tests with coverage report
-uv run poe lint          # ruff check only
-uv run poe typecheck     # pyright only
+uv run ruff format --check    # format-check
+uv run ruff check             # lint
+uv run pyright                # typecheck
+uv run pytest --cov           # test with coverage
 ```
-{% endif %}
 
 ## CI mapping
 
-| Local command | CI step |
-|---------------|---------|
-| `poe format_check` | `ruff format --check` |
-| `poe lint` | `ruff check` |
-| `poe typecheck` | `pyright` |
-| `poe test_cov` | `pytest --cov` |
-| `poe check` | full `quality` job (all of the above) |
+| `make` target | What runs |
+|---|---|
+| `fmt-check` | `ruff format --check` |
+| `lint` | `ruff check` |
+| `typecheck` | `pyright` |
+| `test-cov` | `pytest --cov --cov-report=term --cov-report=html` |
+| `check` | all of the above |
+
+CI runs `make check` on every push and pull request.
 
 ## What CI checks
 
@@ -44,25 +43,22 @@ uv run poe typecheck     # pyright only
 3. **Typecheck** — pyright strict; no implicit `Any`, all public functions annotated
 4. **Tests** — pytest with branch coverage
 
-CI runs on every push and every pull request.
 {% else %}
 ## Commands
 
 ```bash
-make lint    # project-specific linting
-make test    # project-specific tests
+make check    # project-specific checks
 ```
 
 <!-- TODO: add project-specific quality gate commands and their CI equivalents -->
 
 ## CI mapping
 
-| Local command | CI step |
-|---------------|---------|
-| `make lint` | YAML lint, trailing whitespace |
-| `make test` | (project-specific) |
-{% endif %}
+| Command | CI step |
+|---|---|
+| `make check` | `quality` job |
 
+{% endif %}
 ## Pre-commit hooks
 {% if hooks == 'none' %}
 No pre-commit hooks are configured for this project.
@@ -96,7 +92,7 @@ Active hooks:
 
 A change is ready to merge when:
 
-- [ ] `poe check` (or equivalent) passes locally
+- [ ] `make check` (or equivalent) passes locally
 - [ ] New behaviour has test coverage
 - [ ] Any new architectural decision is recorded in `docs/adr/`
 - [ ] `docs/` updated if the change affects documented behaviour
