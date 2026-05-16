@@ -78,17 +78,12 @@ lint.ignore = [
   "W191", "E111", "E114", "E117", "D206", "D300",
   "Q000", "Q001", "Q002", "Q003", "COM812", "COM819",
 ]
-lint.per-file-ignores = { "tests/*.py" = [
+lint.per-file-ignores = { "tests/**/*.py" = [
   "INP001",  # missing __init__.py
   "ARG002",  # unused method argument (fixtures)
   "S101",    # asserts allowed in tests
-  "ANN001",  # missing argument annotation
-  "ANN201",  # missing return annotation
-  "ANN202",  # missing return annotation (private)
   "SLF001",  # private member access
   "PLR2004", # magic values in comparisons
-], "tests/**/*.py" = [
-  "INP001", "ARG002", "S101", "ANN001", "ANN201", "ANN202", "SLF001", "PLR2004",
 ] }
 lint.flake8-type-checking.runtime-evaluated-base-classes = [
   "pydantic.BaseModel",
@@ -98,8 +93,8 @@ lint.pylint.max-args = 7
 [tool.pyright]
 include = ["src", "tests"]
 ignore = ["**/__pycache__", ".venv"]
-reportPrivateUsage = "none"
 typeCheckingMode = "strict"
+executionEnvironments = [{root = "tests", reportPrivateUsage = "none"}]
 pythonVersion = "{{ python_version }}"
 pythonPlatform = "Linux"
 venvPath = "."

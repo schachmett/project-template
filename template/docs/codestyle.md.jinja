@@ -4,19 +4,22 @@
 
 Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}backend/pyproject.toml{% endif %}`.
 
+Run `make fix` (ruff format + ruff check --fix) before committing or running any quality gate. It handles formatting, import sorting, and safe auto-fixes automatically.
+
 ### Formatting
 
 - Line length: 100 characters
 - Quotes: double
-- Run `uv run poe fmt` to auto-format before committing
 
 ### Linting
 
-Active ruff rule sets: `E`, `W`, `F`, `I` (isort), `B` (bugbear), `C4`, `UP`, `RUF`.
+ruff runs with `select = ["ALL"]` and a blocklist of rules that are noisy or conflict with the formatter. See `lint.ignore` in `{% if python == 'root' %}pyproject.toml{% else %}backend/pyproject.toml{% endif %}` for the full list. Notable omissions from enforcement: docstring style rules (D/DOC), copyright headers (CPY), todo formatting (TD/FIX).
+
+Tests additionally allow: `S101` (asserts), `ARG002` (unused fixture args), `SLF001` (private access), `PLR2004` (magic values), `INP001` (implicit namespace).
 
 ### Types
 
-- pyright strict mode is enforced. Every public function must be fully annotated.
+- pyright strict mode is enforced. Every public function and method must be fully annotated, including in tests.
 - Prefer `X | None` over `Optional[X]` (Python 3.10+ union syntax).
 - Avoid `Any` unless wrapping untyped third-party code; annotate the boundary explicitly.
 - Use `TypeAlias` for complex type expressions that appear more than once.
@@ -24,17 +27,23 @@ Active ruff rule sets: `E`, `W`, `F`, `I` (isort), `B` (bugbear), `C4`, `UP`, `R
 ### Imports
 
 - Absolute imports only. No relative imports outside of `__init__.py`.
-- Import order managed by ruff/isort: stdlib → third-party → local.
+- Import order managed by ruff/isort: stdlib → third-party → local. Run `make fix` to sort automatically.
 
-### Naming
+### Docstrings
 
-| Kind | Convention | Example |
-|------|-----------|---------|
-| Module | `snake_case` | `user_service.py` |
-| Class | `PascalCase` | `UserService` |
-| Function / method | `snake_case` | `get_user_by_id` |
-| Constant | `UPPER_SNAKE` | `MAX_RETRIES` |
-| Type alias | `PascalCase` | `UserId = NewType("UserId", int)` |
+Write a docstring for every non-trivial function, method, and class — anything where the name and signature alone leave ambiguity about behaviour, preconditions, or side effects. Skip docstrings for obvious one-liners.
+
+Keep them short. One sentence is usually enough. No specific format is required. Do not restate the signature.
+
+```python
+# Good
+def retry(fn: Callable, attempts: int) -> None:
+    """Call fn up to `attempts` times, stopping on success."""
+
+# Bad — restates the signature, no added value
+def retry(fn: Callable, attempts: int) -> None:
+    """Retry the given callable fn for the given number of attempts."""
+```
 
 ### Error handling
 

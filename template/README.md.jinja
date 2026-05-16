@@ -16,13 +16,14 @@ Author: {{ author_name }}
 {% if python == 'root' %}
 ```bash
 uv sync
-uv run poe all    # lint + typecheck + test
+make fix    # format + auto-fix imports
+make check  # full CI suite
 ```
 {% elif python == 'component' %}
 ```bash
-cd backend
-uv sync
-uv run poe all    # lint + typecheck + test
+cd backend && uv sync
+make fix    # format + auto-fix imports
+make check  # full CI suite
 ```
 {% endif %}
 
@@ -40,17 +41,10 @@ See [AGENTS.md](AGENTS.md) for the full agent workflow, documentation index, and
 
 | Command | Description |
 |---------|-------------|
-{% if python == 'root' %}
-| `uv run poe check` | Lint and type-check |
-| `uv run poe test` | Run test suite |
-| `uv run poe all` | Check + test |
-| `uv run poe fmt` | Auto-format code |
-{% elif python == 'component' %}
-| `cd backend && uv run poe check` | Lint and type-check |
-| `cd backend && uv run poe test` | Run test suite |
-| `cd backend && uv run poe all` | Check + test |
-| `cd backend && uv run poe fmt` | Auto-format code |
-{% endif %}
+| `make fix` | Auto-format and fix imports (run before committing) |
+| `make check` | Full CI suite: format-check + lint + typecheck + tests |
+| `make test` | Run tests only (faster) |
+| `make typecheck` | pyright only |
 {% endif %}
 {% if has_api %}
 

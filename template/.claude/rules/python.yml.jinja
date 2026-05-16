@@ -5,6 +5,6 @@ rules:
   - Every public function and method must have a type annotation. pyright strict mode is enforced in CI.
   - Every new module in src/ must have a corresponding test module in tests/.
     Minimum: one test that exercises the public interface.
-  - Use ruff for formatting and linting. Run `uv run poe fmt` before committing.
+  - Use ruff for formatting and linting. Run `make fix` (format + check --fix) before committing.
   - Prefer explicit over implicit: no wildcard imports, no implicit optional types.
   - Do not catch bare `Exception` unless you re-raise or log with full traceback.

@@ -1,0 +1,81 @@
+{% if python != 'none' %}
+# Testing
+{% set src = 'backend/src' if python == 'component' else 'src' %}
+{% set pkg = package_name %}
+
+## Running tests
+
+```bash
+make test       # fast, no coverage
+make test-cov   # with branch coverage report
+```
+
+## Layout
+
+```
+tests/
+  conftest.py       # shared fixtures
+  unit/             # pure logic, no I/O
+  integration/      # real I/O (db, filesystem, network)
+```
+
+Keep unit tests fast and free of I/O. Integration tests may use real databases, real files, or real HTTP — never mocks of those boundaries.
+
+## Dependency-direction tests
+
+The layered architecture must be enforced by tests, not just convention. Write AST-based import checks for every boundary that matters in this project.
+
+```python
+# tests/test_imports.py
+import ast
+from pathlib import Path
+
+
+def imports_of(path: Path) -> set[str]:
+    tree = ast.parse(path.read_text())
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        match node:
+            case ast.Import():
+                result.update(alias.name for alias in node.names)
+            case ast.ImportFrom() if node.module:
+                result.add(node.module)
+    return result
+
+
+def all_imports_in(directory: Path) -> set[str]:
+    result: set[str] = set()
+    for path in directory.rglob("*.py"):
+        result |= imports_of(path)
+    return result
+
+
+# Example: database adapter must not import from cli or api layers.
+# Add similar assertions for every architectural boundary in this project.
+def test_db_does_not_import_cli() -> None:
+    src = Path("{{ src }}/{{ pkg }}")
+    db_imports = all_imports_in(src / "db")
+    forbidden = {
+        m for m in db_imports
+        if m.startswith("{{ pkg }}.cli") or m.startswith("{{ pkg }}.api")
+    }
+    assert not forbidden, f"db layer imports upper layers: {forbidden}"
+```
+
+Add one test function per boundary. Name them `test_<layer>_does_not_import_<upper_layer>`.
+
+## Fixtures
+
+- Define fixtures in `conftest.py` at the appropriate scope (root for shared, subdirectory for local).
+- Prefer function scope. Use session scope only for expensive resources that are genuinely read-only (e.g., a pre-built schema).
+
+## Coverage
+
+Target: branch coverage over the `{{ src }}/{{ pkg }}` package. Coverage config is in `pyproject.toml`. View the HTML report in `htmlcov/` after `make test-cov`.
+
+Missing coverage on a branch is not always a bug — exclude deliberately unreachable branches with `# pragma: no cover`.
+{% else %}
+# Testing
+
+<!-- TODO: add project-specific testing guidelines -->
+{% endif %}
