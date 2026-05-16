@@ -6,8 +6,6 @@ _exclude:
   # Conditional docs
   - "{% if not has_api %}docs/operations.md{% endif %}"
   - "{% if not has_api %}docs/runbooks.md{% endif %}"
-  # _shared/ holds Jinja2 partials included by other templates — not copied directly
-  - "_shared"
   # _py_root/ is a staging directory for Python project files.
   # For python=root: _tasks moves contents to project root.
   # For python=component: _tasks renames the whole dir to backend/.
