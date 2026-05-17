@@ -80,13 +80,13 @@ When a session produces a durable finding, route it to the right existing file w
 ## Recommended session flow
 
 1. Read `AGENTS.md`.
-2. Check `.ai/current/handoff.md`.
+2. Check `.ai/` for session notes or handoff context from the previous session.
 3. Run `{% if platform == 'github' %}gh{% else %}fj{% endif %} issue list` to orient on open work.
 4. Read only the durable docs relevant to the task.
 5. Make the smallest coherent change that moves the task forward.
 6. Update docs if durable behaviour changed.
 7. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
-8. Commit; refresh `.ai/current/handoff.md` before pausing or switching models.
+8. Commit; leave a brief handoff note in `.ai/` before pausing or switching models.
 
 ## Handoff expectations
 

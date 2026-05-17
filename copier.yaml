@@ -5,7 +5,6 @@ _min_copier_version: "9.0"
 _exclude:
   # Conditional docs
   - "{% if not has_api %}docs/operations.md{% endif %}"
-  - "{% if not has_api %}docs/runbooks.md{% endif %}"
   # _py_root/ is a staging directory for Python project files.
   # For python=root: _tasks moves contents to project root.
   # For python=component: _tasks renames the whole dir to backend/.

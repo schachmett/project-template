@@ -15,39 +15,19 @@
 
 ## Deployment
 
-Releases are triggered by pushing a version tag (see [agent-workflow.md](agent-workflow.md)).
-
-The CD pipeline:
-1. Builds the Docker image
-2. Pushes to the container registry
-3. <!-- TODO: add deploy step (kubectl apply, docker compose pull, etc.) -->
-{% if secrets == 'sops' %}
-
-## Secrets management
-
-Secrets are encrypted with SOPS. To work with encrypted files:
+Releases are triggered by a version tag (see [agent-workflow.md](agent-workflow.md)):
 
 ```bash
-# Edit an encrypted file
-sops secrets/production.yaml
-
-# View decrypted (without editing)
-sops -d secrets/production.yaml
+git tag v1.2.3
+git push origin v1.2.3
 ```
 
-### Key setup
+The CD pipeline builds and pushes the Docker image, then deploys:
+1. Build Docker image
+2. Push to registry
+3. <!-- TODO: add deploy step (kubectl apply, docker compose pull, etc.) -->
 
-<!-- TODO: document which age/GPG key is required and how to obtain it -->
-{% elif secrets == 'env-only' %}
-
-## Environment variables
-
-Copy `.env.example` to `.env` and fill in values. Production values are injected by the deployment platform.
-
-See `.env.example` for the full list of required variables.
-{% endif %}
-
-## Docker image
+### Docker image
 
 {% if platform in ('forgejo', 'both') %}
 **Forgejo registry:** `{{ forgejo_url | replace('https://', '') | replace('http://', '') }}/<org>/{{ project_name }}:<tag>`
@@ -57,21 +37,72 @@ See `.env.example` for the full list of required variables.
 {% endif %}
 
 ```bash
-# Pull latest
 docker pull <registry>/<org>/{{ project_name }}:latest
-
-# Run locally
 docker run --env-file .env <registry>/<org>/{{ project_name }}:latest
 ```
+{% if secrets == 'sops' %}
+
+## Secrets
+
+Secrets are encrypted with SOPS. To work with encrypted files:
+
+```bash
+sops secrets/production.yaml          # edit in place
+sops -d secrets/production.yaml       # view decrypted
+```
+
+<!-- TODO: document which age/GPG key is required and how to obtain it -->
+{% elif secrets == 'env-only' %}
+
+## Secrets
+
+Copy `.env.example` to `.env` and fill in values. Production values are injected by the deployment platform.
+{% endif %}
 
 ## Health checks
 
 <!-- TODO: document health check endpoint and expected response -->
 
-## Logging
+## Logging and monitoring
 
-<!-- TODO: describe logging approach (structured JSON, log aggregator, etc.) -->
+<!-- TODO: describe logging approach and monitoring/alerting setup -->
 
-## Monitoring
+---
 
-<!-- TODO: describe monitoring/alerting setup -->
+## Runbooks
+
+### RB-001: Service is not responding
+
+**Trigger:** Health check fails or users report the service is unreachable.
+
+1. Check the container is running: `docker ps | grep {{ project_name }}`
+2. Check recent logs: `docker logs --tail 100 <container-id>`
+3. <!-- TODO: add environment-specific recovery steps -->
+
+**Verification:** `curl -f <health-check-url>` returns 200.
+
+---
+
+### RB-002: Rollback to previous version
+
+**Trigger:** Bad deploy detected in production.
+
+1. Identify the last known good tag:
+   ```bash
+{% if platform in ('forgejo', 'both') %}
+   fj release list
+{% else %}
+   gh release list
+{% endif %}
+   ```
+2. Pull and deploy the previous image:
+   ```bash
+   docker pull <registry>/<org>/{{ project_name }}:<previous-tag>
+   # TODO: add deploy command
+   ```
+
+**Verification:** Service responds correctly and logs show the previous version.
+
+---
+
+<!-- Add more runbooks as operational knowledge accumulates -->

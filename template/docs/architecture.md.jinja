@@ -23,7 +23,7 @@
 
 ### `{{ package_name }}`
 
-Python package at `{% if python == 'root' %}src/{{ package_name }}{% else %}backend/src/{{ package_name }}{% endif %}/`.
+Python package at `{% if python == 'component' %}{{ component_dir }}/{% endif %}src/{{ package_name }}/`.
 
 <!-- Describe what this package is responsible for. -->
 {% endif %}

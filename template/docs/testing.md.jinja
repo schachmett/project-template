@@ -1,20 +1,21 @@
 {% if python != 'none' %}
 # Testing
-{% set src = 'backend/src' if python == 'component' else 'src' %}
-{% set pkg = package_name %}
+{% set src_root = component_dir ~ '/src' if python == 'component' else 'src' %}
 
 ## Running tests
 
 ```bash
-make test       # fast, no coverage
-make test-cov   # with branch coverage report
+make check    # full suite with branch coverage
 ```
+
+To run tests alone without the full gate: `uv run pytest` (or `cd {{ component_dir }} && uv run pytest` for component layout).
 
 ## Layout
 
 ```
 tests/
   conftest.py       # shared fixtures
+  test_imports.py   # architectural boundary enforcement
   unit/             # pure logic, no I/O
   integration/      # real I/O (db, filesystem, network)
 ```
@@ -23,57 +24,27 @@ Keep unit tests fast and free of I/O. Integration tests may use real databases, 
 
 ## Dependency-direction tests
 
-The layered architecture must be enforced by tests, not just convention. Write AST-based import checks for every boundary that matters in this project.
+`tests/test_imports.py` enforces import boundaries via AST analysis. Populate the `BOUNDARIES` list with one entry per architectural boundary:
 
 ```python
-# tests/test_imports.py
-import ast
-from pathlib import Path
-
-
-def imports_of(path: Path) -> set[str]:
-    tree = ast.parse(path.read_text())
-    result: set[str] = set()
-    for node in ast.walk(tree):
-        match node:
-            case ast.Import():
-                result.update(alias.name for alias in node.names)
-            case ast.ImportFrom() if node.module:
-                result.add(node.module)
-    return result
-
-
-def all_imports_in(directory: Path) -> set[str]:
-    result: set[str] = set()
-    for path in directory.rglob("*.py"):
-        result |= imports_of(path)
-    return result
-
-
-# Example: database adapter must not import from cli or api layers.
-# Add similar assertions for every architectural boundary in this project.
-def test_db_does_not_import_cli() -> None:
-    src = Path("{{ src }}/{{ pkg }}")
-    db_imports = all_imports_in(src / "db")
-    forbidden = {
-        m for m in db_imports
-        if m.startswith("{{ pkg }}.cli") or m.startswith("{{ pkg }}.api")
-    }
-    assert not forbidden, f"db layer imports upper layers: {forbidden}"
+BOUNDARIES: list[tuple[str, str]] = [
+    ("db", "{{ package_name }}.cli"),   # db must not import from cli
+    ("db", "{{ package_name }}.api"),   # db must not import from api
+]
 ```
 
-Add one test function per boundary. Name them `test_<layer>_does_not_import_<upper_layer>`.
+Each entry is `(source_layer, forbidden_import_prefix)`. A single parametrized test covers all of them.
 
 ## Fixtures
 
 - Define fixtures in `conftest.py` at the appropriate scope (root for shared, subdirectory for local).
-- Prefer function scope. Use session scope only for expensive resources that are genuinely read-only (e.g., a pre-built schema).
+- Prefer function scope. Use session scope only for expensive, genuinely read-only resources.
 
 ## Coverage
 
-Target: branch coverage over the `{{ src }}/{{ pkg }}` package. Coverage config is in `pyproject.toml`. View the HTML report in `htmlcov/` after `make test-cov`.
+Target: branch coverage over `{{ src_root }}/{{ package_name }}`. Config is in `pyproject.toml`. HTML report lands in `htmlcov/` after `make check`.
 
-Missing coverage on a branch is not always a bug — exclude deliberately unreachable branches with `# pragma: no cover`.
+Exclude deliberately unreachable branches with `# pragma: no cover`.
 {% else %}
 # Testing
 
