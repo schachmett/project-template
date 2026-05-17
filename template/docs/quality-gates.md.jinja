@@ -5,34 +5,20 @@ Run all checks before opening a PR. CI enforces the same commands.
 ## Commands
 
 ```bash
-{% if python == 'component' %}cd backend && {% endif %}uv sync        # install / sync dependencies
+{% if python == 'component' %}cd backend && {% endif %}uv sync    # install / sync dependencies
 
-make check      # full CI suite: format-check + lint + typecheck + test with coverage
-make fix        # auto-fix: ruff format + ruff check --fix (safe to run anytime)
-make test       # run tests only (no coverage, faster)
-make test-cov   # run tests with coverage report
-make lint       # ruff check only
-make typecheck  # pyright only
+make fix      # ruff format + ruff check --fix (run before committing)
+make check    # full CI suite: format-check + lint + typecheck + test with coverage
 ```
 
-Underlying commands (run via `uv run` in the project{% if python == 'component' %}'s `backend/` directory{% endif %}):
+`make check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `backend/` directory{% endif %}):
 
 ```bash
-uv run ruff format --check    # format-check
-uv run ruff check             # lint
-uv run pyright                # typecheck
-uv run pytest --cov           # test with coverage
+ruff format --check
+ruff check
+pyright
+pytest --cov --cov-report=term --cov-report=html
 ```
-
-## CI mapping
-
-| `make` target | What runs |
-|---|---|
-| `fmt-check` | `ruff format --check` |
-| `lint` | `ruff check` |
-| `typecheck` | `pyright` |
-| `test-cov` | `pytest --cov --cov-report=term --cov-report=html` |
-| `check` | all of the above |
 
 CI runs `make check` on every push and pull request.
 

@@ -1,38 +1,21 @@
 {% if python == 'root' %}
 _UV := uv run
-_CD :=
 {% elif python == 'component' %}
 _UV := cd backend && uv run
-_CD := cd backend &&
 {% endif %}
 
 {% if python != 'none' %}
-.PHONY: fmt fmt-check lint lint-fix typecheck test test-cov fix check{% if has_api %} up{% endif %}
+.PHONY: fix check{% if has_api %} up{% endif %}
 
-fmt:
+fix:
 	$(_UV) ruff format
-
-fmt-check:
-	$(_UV) ruff format --check
-
-lint:
-	$(_UV) ruff check
-
-lint-fix:
 	$(_UV) ruff check --fix
 
-typecheck:
+check:
+	$(_UV) ruff format --check
+	$(_UV) ruff check
 	$(_UV) pyright
-
-test:
-	$(_UV) pytest
-
-test-cov:
 	$(_UV) pytest --cov --cov-report=term --cov-report=html
-
-fix: fmt lint-fix
-
-check: fmt-check lint typecheck test-cov
 {% else %}
 .PHONY: check{% if has_api %} up{% endif %}
 
