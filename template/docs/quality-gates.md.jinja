@@ -59,19 +59,21 @@ pre-commit install
 pre-commit run --all-files
 ```
 
+Each hook runs in an isolated virtualenv at a pinned version — more reproducible than calling tools directly. Hooks cover all file types, not just Python.
+
 Active hooks:
 
 | Hook | What it checks |
 |------|---------------|
-| `trailing-whitespace` | No trailing spaces |
-| `end-of-file-fixer` | Files end with newline |
+| `trailing-whitespace` | No trailing spaces (all files) |
+| `end-of-file-fixer` | Files end with newline (all files) |
 | `check-yaml` | Valid YAML syntax |
 | `check-added-large-files` | No accidental large file commits |
-{% if hooks == 'python' %}
+{%- if hooks == 'python' %}
 | `ruff` | Python lint (with auto-fix) |
 | `ruff-format` | Python formatting |
 | `pyright` | Python type checking |
-{% endif %}
+{%- endif %}
 {% endif %}
 
 ## Definition of done

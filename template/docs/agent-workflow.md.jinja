@@ -97,11 +97,8 @@ When a session produces a durable finding, route it to the right existing file w
 
 ## Releases
 
-Triggered by a version tag:
-
 ```bash
-git tag v1.2.3
-git push origin v1.2.3
+{% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "..."
 ```
 
-This triggers the CD workflow{% if has_api %} which builds and pushes the Docker image{% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.
+This creates the release page and pushes the underlying tag, which triggers the CD workflow{% if has_api %} (builds and pushes the Docker image){% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

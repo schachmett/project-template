@@ -32,6 +32,31 @@ _tasks:
   - command: "mv _py_root {{ component_dir }}"
     when: "{% if python == 'component' %}true{% endif %}"
 
+_message_after_copy: |
+  Project "{{ project_name }}" created. Next steps:
+
+    git init && git add -A && git commit -m "chore: initial project setup"
+  {%- if python == 'root' %}
+    uv sync
+  {%- elif python == 'component' %}
+    cd {{ component_dir }} && uv sync
+  {%- endif %}
+  {%- if hooks != 'none' %}
+    pre-commit install
+  {%- endif %}
+  {%- if platform == 'github' %}
+    git remote add origin https://github.com/{{ org }}/{{ project_name }}.git
+  {%- elif platform == 'forgejo' %}
+    git remote add origin {{ forgejo_url }}/{{ org }}/{{ project_name }}.git
+  {%- else %}
+    git remote add origin {{ forgejo_url }}/{{ org }}/{{ project_name }}.git
+    git remote add github https://github.com/{{ org }}/{{ project_name }}.git
+  {%- endif %}
+    git push -u origin main
+  {%- if platform == 'both' %}
+    git push github main
+  {%- endif %}
+
 # ── Questions ─────────────────────────────────────────────────────────────────
 
 project_name:
@@ -56,6 +81,11 @@ forgejo_url:
   type: str
   help: "Forgejo instance URL, e.g. https://codeberg.org (no trailing slash)"
   when: "{{ platform != 'github' }}"
+  default: ""
+
+org:
+  type: str
+  help: "GitHub/Forgejo organization or username (used in remote URLs)"
   default: ""
 
 python:

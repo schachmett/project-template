@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 # Map each layer to the import prefixes it must never depend on.
-# Add one entry per architectural boundary in this project.
+# layer: path segment under src/{{ package_name }}/ (e.g. "db" → src/{{ package_name }}/db/)
+# forbidden_prefix: dot-notation module prefix (e.g. "{{ package_name }}.cli")
 # Example: ("db", "{{ package_name }}.cli") — db layer must not import from cli.
 BOUNDARIES: list[tuple[str, str]] = []
 
