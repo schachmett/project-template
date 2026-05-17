@@ -21,7 +21,7 @@ make check  # full CI suite
 ```
 {% elif python == 'component' %}
 ```bash
-cd backend && uv sync
+cd {{ component_dir }} && uv sync
 make fix    # format + auto-fix imports
 make check  # full CI suite
 ```

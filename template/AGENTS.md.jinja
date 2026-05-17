@@ -1,53 +1,34 @@
 # {{ project_name }}
 
-Agent entry point. Read this file first, then follow the links below before writing any code.
+Agent entry point. Read this first, then the docs relevant to your task before writing any code.
 
-## Documentation
+## Documentation map
 
-- [docs/agent-workflow.md](docs/agent-workflow.md) — branching, PRs, labels, releases, CLI reference
-- [docs/architecture.md](docs/architecture.md) — system design and component overview
-- [docs/codestyle.md](docs/codestyle.md) — formatting, naming, and code conventions
+- [docs/agent-workflow.md](docs/agent-workflow.md) — session flow, PRs, issues, releases
+- [docs/architecture.md](docs/architecture.md) — system design and component boundaries
+- [docs/codestyle.md](docs/codestyle.md) — code conventions and docstring guidance
 - [docs/quality-gates.md](docs/quality-gates.md) — commands to run before opening a PR
+{% if python != 'none' %}
+- [docs/testing.md](docs/testing.md) — testing guidelines and dependency-direction tests
+{% endif %}
 {% if has_api %}
 - [docs/operations.md](docs/operations.md) — deployment, infrastructure, environment config
 - [docs/runbooks.md](docs/runbooks.md) — incident response procedures
 {% endif %}
-- [docs/adr/](docs/adr/) — architecture decision records (one file per decision)
+- [docs/adr/README.md](docs/adr/README.md) — ADR index and format guide
 - [docs/domain/](docs/domain/) — domain-specific documentation
 
-## Claude rules
+## Working memory
 
-`.claude/rules/` contains glob-scoped rule files loaded automatically:
+`.ai/` is gitignored. Use it freely for scratch notes, ad-hoc scripts, intermediate outputs, and session handoffs. Never reference `.ai/` paths in committed files or docs.
 
-- `docs.yml` — documentation conventions, applied to `docs/**`
-{% if python != 'none' %}
-- `python.yml` — Python conventions, applied to `{% if python == 'root' %}src/**/*.py{% else %}backend/src/**/*.py{% endif %}`
-{% endif %}
-
-## Ephemeral artifacts
-
-`.ai/` is gitignored. Use it freely for scratch notes, plans, and intermediate research. Never reference `.ai/` paths in committed files.
-
-## Secrets and environment variables
-
+## Secrets
 {% if secrets == 'sops' %}
-Secrets are managed with [SOPS](https://getsops.io/). Encrypted secret files are committed to the repo. You need the appropriate age or GPG key configured locally to decrypt them.
+Secrets are managed with [SOPS](https://getsops.io/). Encrypted files are committed to the repo; you need the appropriate age or GPG key to decrypt them.
 
-**Never write plaintext secrets to any file.** Use `sops <file>` to edit encrypted files in place. See [docs/operations.md](docs/operations.md) for key setup instructions.
+**Never write plaintext secrets to any file.** Use `sops <file>` to edit encrypted files. See [docs/operations.md](docs/operations.md) for key setup.
 {% elif secrets == 'env-only' %}
-Secrets are passed via environment variables. Copy `.env.example` to `.env` (which is gitignored) and fill in real values.
-
-**Never commit `.env`.**
+Secrets are passed via environment variables. Copy `.env.example` to `.env` (gitignored) and fill in real values. **Never commit `.env`.**
 {% else %}
-No secrets management is configured. Credentials are injected by the deployment environment (CI secrets, Kubernetes secrets, etc.). Do not hardcode credentials anywhere in the repository.
-{% endif %}
-
-## Platform CLI
-
-{% if platform == 'both' %}
-This project targets both Forgejo and GitHub. Use `fj` for Forgejo operations (issues, PRs, releases) and `gh` for GitHub operations. See [docs/agent-workflow.md](docs/agent-workflow.md) for the full command reference.
-{% elif platform == 'forgejo' %}
-Use `fj` to manage issues, pull requests, and releases. See [docs/agent-workflow.md](docs/agent-workflow.md) for the full command reference.
-{% else %}
-Use `gh` to manage issues, pull requests, and releases. See [docs/agent-workflow.md](docs/agent-workflow.md) for the full command reference.
+No secrets management is configured. Credentials come from the deployment environment (CI secrets, etc.). Do not hardcode credentials.
 {% endif %}

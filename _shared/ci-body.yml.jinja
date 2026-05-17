@@ -17,7 +17,7 @@ jobs:
           python-version: "{{ python_version }}"
 
       - name: Install dependencies
-        run: {% if python == 'component' %}cd backend && {% endif %}uv sync
+        run: {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync
 
 {% elif hooks != 'none' %}
       - name: Install pre-commit

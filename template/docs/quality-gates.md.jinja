@@ -5,13 +5,13 @@ Run all checks before opening a PR. CI enforces the same commands.
 ## Commands
 
 ```bash
-{% if python == 'component' %}cd backend && {% endif %}uv sync    # install / sync dependencies
+{% if python == 'component' %}cd {{ component_dir }} &&{% endif %}uv sync    # install / sync dependencies
 
 make fix      # ruff format + ruff check --fix (run before committing)
 make check    # full CI suite: format-check + lint + typecheck + test with coverage
 ```
 
-`make check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `backend/` directory{% endif %}):
+`make check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `{{ component_dir }}/` directory{% endif %}):
 
 ```bash
 ruff format --check

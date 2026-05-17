@@ -1,9 +1,8 @@
-{% if python == 'root' %}
+{%- if python == 'component' %}
+_UV := cd {{ component_dir }} && uv run
+{%- elif python == 'root' %}
 _UV := uv run
-{% elif python == 'component' %}
-_UV := cd backend && uv run
-{% endif %}
-
+{%- endif %}
 {% if python != 'none' %}
 .PHONY: fix check{% if has_api %} up{% endif %}
 
@@ -16,18 +15,19 @@ check:
 	$(_UV) ruff check
 	$(_UV) pyright
 	$(_UV) pytest --cov --cov-report=term --cov-report=html
-{% else %}
+{%- else %}
+
 .PHONY: check{% if has_api %} up{% endif %}
 
 check:
-{% if hooks != 'none' %}
+{%- if hooks != 'none' %}
 	pre-commit run --all-files
-{% else %}
+{%- else %}
 	@echo "No checks configured — add project-specific targets here"
-{% endif %}
-{% endif %}
-{% if has_api %}
+{%- endif %}
+{%- endif %}
+{%- if has_api %}
 
 up:
 	docker compose up
-{% endif %}
+{%- endif %}

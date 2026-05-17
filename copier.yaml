@@ -11,8 +11,6 @@ _exclude:
   # For python=component: _tasks renames the whole dir to backend/.
   # For python=none: excluded entirely.
   - "{% if python == 'none' %}_py_root{% endif %}"
-  # Conditional Claude rules
-  - "{% if python == 'none' %}.claude/rules/python.yml{% endif %}"
   # Conditional CI/CD platforms
   - "{% if platform == 'github' %}.forgejo{% endif %}"
   - "{% if platform == 'forgejo' %}.github{% endif %}"
@@ -31,8 +29,8 @@ _tasks:
       mv _py_root/tests . &&
       rm -rf _py_root
     when: "{% if python == 'root' %}true{% endif %}"
-  # python=component: rename _py_root/ to backend/
-  - command: "mv _py_root backend"
+  # python=component: rename _py_root/ to the component directory
+  - command: "mv _py_root {{ component_dir }}"
     when: "{% if python == 'component' %}true{% endif %}"
 
 # ── Questions ─────────────────────────────────────────────────────────────────
@@ -118,6 +116,12 @@ hooks:
     - none
   default: minimal
   validator: "{% if hooks == 'python' and python == 'none' %}hooks=python requires python != none{% endif %}"
+
+component_dir:
+  type: str
+  help: "Subdirectory name for the Python component (only when python=component)"
+  default: "backend"
+  when: "{{ python == 'component' }}"
 
 # ── Computed variables (never asked) ──────────────────────────────────────────
 

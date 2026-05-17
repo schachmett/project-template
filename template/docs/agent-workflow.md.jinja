@@ -1,6 +1,67 @@
 # Agent workflow
 
-## Branch naming
+This repository is set up for model-neutral, docs-driven collaboration. `AGENTS.md` is the entry point only; durable guidance lives here and elsewhere under `docs/`.
+
+## Where information belongs
+
+### Durable docs
+
+Use `docs/` for information that should survive beyond the current task:
+
+- architecture and component boundaries
+- domain rules and glossary
+- coding, testing, and workflow standards
+- runbooks
+- stable findings worth preserving
+
+Use [AGENTS.md](../AGENTS.md) as the map of what already exists before creating a new durable file.
+
+### Issues and PRs
+{% if platform == 'github' %}
+
+Issues and PRs on GitHub are the authoritative record of all planned and completed work.
+
+**Issues** capture problems, goals, and planning. Run `gh issue list` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
+
+**PRs** carry the implementation. Always reference the issue: `Fixes #N` or `Part of #N`. PR body explains what changed, why, and how to verify. **PRs are reviewed and merged by the human — do not auto-merge.**
+
+```bash
+gh issue list
+gh issue create --title "..." --body "..."
+gh pr create --title "..." --body "..." --base main
+gh pr list
+gh release create v1.2.3 --title "v1.2.3" --notes "..."
+```
+{% else %}
+
+Issues and PRs on Forgejo are the authoritative record of all planned and completed work.
+{% if platform == 'both' %}
+GitHub is a convenience mirror — code is readable there, but all workflow (issues, PRs, releases) happens on Forgejo.
+{% endif %}
+
+**Issues** capture problems, goals, and planning. Run `fj issue list` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
+
+**PRs** carry the implementation. Always reference the issue: `Fixes #N` or `Part of #N`. PR body explains what changed, why, and how to verify. **PRs are reviewed and merged by the human — do not auto-merge.**
+
+```bash
+fj issue list
+fj issue create --title "..." --body "..."
+fj pr create --title "..." --body "..." --base main
+fj pr list
+fj release create v1.2.3 --title "v1.2.3" --notes "..."
+```
+{% endif %}
+
+**Issue title conventions:**
+- Plain English, problem-focused. Describes what is wrong or needed, not what will be done.
+- No type prefix (`fix:`, `docs:` etc. belong on commits, not issue titles).
+- Do not preempt the solution in the title.
+
+### Working memory
+
+`.ai/` is gitignored. Use it for session handoffs, scratch notes, ad-hoc scripts, and intermediate outputs. Anything worth preserving beyond the session belongs in an issue comment or in `docs/`.
+
+## Branching
 
 ```
 <type>/<short-description>
@@ -8,91 +69,39 @@
 
 Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
 
-Examples:
-- `feat/user-auth`
-- `fix/null-pointer-on-empty-input`
-- `docs/update-api-reference`
-
 Always branch from `main`. Keep branches short-lived.
 
-## Issue and PR workflow
+## Drift policy
 
-{% if platform in ('forgejo', 'both') %}
-### Forgejo (`fj`)
+If a change affects durable behaviour, update the relevant doc in the same change. Do not turn task chatter into durable docs — move only stable conclusions into `docs/`.
 
-```bash
-# List open issues
-fj issue list
+When a session produces a durable finding, route it to the right existing file without creating a new one. Create a new `docs/domain/` file only when a genuinely new subject area has no home. Write an ADR (in `docs/adr/`) whenever a non-obvious architectural decision is made.
 
-# Create an issue
-fj issue create --title "..." --body "..."
+## Recommended session flow
 
-# Create a PR from current branch
-fj pr create --title "..." --body "..." --base main
+1. Read `AGENTS.md`.
+2. Check `.ai/current/handoff.md`.
+3. Run `{% if platform == 'github' %}gh{% else %}fj{% endif %} issue list` to orient on open work.
+4. Read only the durable docs relevant to the task.
+5. Make the smallest coherent change that moves the task forward.
+6. Update docs if durable behaviour changed.
+7. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
+8. Commit; refresh `.ai/current/handoff.md` before pausing or switching models.
 
-# List open PRs
-fj pr list
+## Handoff expectations
 
-# Merge a PR (after CI passes)
-fj pr merge <number> --squash
-
-# Create a release tag (triggers CD)
-fj release create v1.2.3 --title "v1.2.3" --notes "..."
-```
-{% endif %}
-{% if platform in ('github', 'both') %}
-### GitHub (`gh`)
-
-```bash
-# List open issues
-gh issue list
-
-# Create an issue
-gh issue create --title "..." --body "..."
-
-# Create a PR from current branch
-gh pr create --title "..." --body "..." --base main
-
-# List open PRs
-gh pr list
-
-# Merge a PR (after CI passes)
-gh pr merge <number> --squash
-
-# Create a release tag (triggers CD)
-gh release create v1.2.3 --title "v1.2.3" --notes "..."
-```
-{% endif %}
-
-## Label conventions
-
-| Label | Meaning |
-|-------|---------|
-| `bug` | Something is broken |
-| `feature` | New capability |
-| `docs` | Documentation only |
-| `refactor` | Internal change, no behaviour change |
-| `breaking` | Breaks backwards compatibility |
-| `blocked` | Waiting on external dependency |
-
-## PR checklist
-
-Before opening a PR:
-
-1. All quality gates pass locally (see [quality-gates.md](quality-gates.md))
-2. PR description explains *why*, not just *what*
-3. Breaking changes are labelled `breaking` and noted in the PR body
-4. Any new architectural decisions are recorded in `docs/adr/`
+- What changed and what is next.
+- Assumptions made and open questions.
+- Whether any ADRs were written or a decision was deferred (and why).
+- Suggested commit message or confirmation the branch is clean.
 
 ## Releases
 
-Releases are triggered by pushing a version tag:
+Triggered by a version tag:
 
 ```bash
 git tag v1.2.3
 git push origin v1.2.3
 ```
 
-This triggers the CD workflow{% if has_api %} which builds and pushes the Docker image{% endif %}.
-
-Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.
+This triggers the CD workflow{% if has_api %} which builds and pushes the Docker image{% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

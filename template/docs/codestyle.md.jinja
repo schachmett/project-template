@@ -2,7 +2,7 @@
 {% if python != 'none' %}
 ## Python
 
-Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}backend/pyproject.toml{% endif %}`.
+Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}`.
 
 Run `make fix` (ruff format + ruff check --fix) before committing or running any quality gate. It handles formatting, import sorting, and safe auto-fixes automatically.
 
@@ -13,7 +13,7 @@ Run `make fix` (ruff format + ruff check --fix) before committing or running any
 
 ### Linting
 
-ruff runs with `select = ["ALL"]` and a blocklist of rules that are noisy or conflict with the formatter. See `lint.ignore` in `{% if python == 'root' %}pyproject.toml{% else %}backend/pyproject.toml{% endif %}` for the full list. Notable omissions from enforcement: docstring style rules (D/DOC), copyright headers (CPY), todo formatting (TD/FIX).
+ruff runs with `select = ["ALL"]` and a blocklist of rules that are noisy or conflict with the formatter. See `lint.ignore` in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}` for the full list. Notable omissions from enforcement: docstring style rules (D/DOC), copyright headers (CPY), todo formatting (TD/FIX).
 
 Tests additionally allow: `S101` (asserts), `ARG002` (unused fixture args), `SLF001` (private access), `PLR2004` (magic values), `INP001` (implicit namespace).
 
