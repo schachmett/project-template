@@ -1,6 +1,28 @@
 # {{ project_name }}
 
 Agent entry point. Read this first, then the docs relevant to your task before writing any code.
+{% if workflow_style == 'issues-prs' %}
+## Mandatory stops
+
+There are two points in every task where you **must stop and wait for explicit human approval** before continuing. These stops are non-negotiable. They also give the human the opportunity to switch models between planning, implementation, and review.
+
+**Stop 1 — before writing any code: plan approval**
+
+After discussing the approach, write an implementation plan and present it to the human. Do not open any file for editing until the human explicitly responds with one of:
+
+- *"Post the plan to the issue"* → post the plan as a comment on the issue, then stop. Wait for the human to say "go implement" before proceeding.
+- *"Skip the plan, start implementing"* → proceed directly to implementation.
+
+There is no other valid path forward. Do not interpret silence, agreement with your reasoning, or general enthusiasm as approval to start coding.
+
+**Stop 2 — after opening a PR: human reviews and merges**
+
+Open the PR and stop. Do not merge. The human reviews the diff, requests changes if needed, and merges when satisfied.
+{% else %}
+## Mandatory stop
+
+Stage your changes and propose a commit message. Do not commit. Wait for the human to review the staged diff and commit.
+{% endif %}
 
 ## Documentation map
 
@@ -22,12 +44,15 @@ Agent entry point. Read this first, then the docs relevant to your task before w
 `.ai/` is gitignored. Use it freely for scratch notes, ad-hoc scripts, intermediate outputs, and session handoffs. Never reference `.ai/` paths in committed files or docs.
 
 ## Secrets
-{% if secrets == 'sops' %}
+{%- if secrets == 'sops' %}
+
 Secrets are managed with [SOPS](https://getsops.io/). Encrypted files are committed to the repo; you need the appropriate age or GPG key to decrypt them.
 
 **Never write plaintext secrets to any file.** Use `sops <file>` to edit encrypted files. See [docs/operations.md](docs/operations.md) for key setup.
-{% elif secrets == 'env-only' %}
+{%- elif secrets == 'env-only' %}
+
 Secrets are passed via environment variables. Copy `.env.example` to `.env` (gitignored) and fill in real values. **Never commit `.env`.**
-{% else %}
+{%- else %}
+
 No secrets management is configured. Credentials come from the deployment environment (CI secrets, etc.). Do not hardcode credentials.
-{% endif %}
+{%- endif %}

@@ -71,6 +71,9 @@ Active hooks:
 | `check-yaml` | Valid YAML syntax |
 | `check-added-large-files` | No accidental large file commits |
 | `detect-secrets` | No secrets or credentials committed |
+{%- if workflow_style == 'issues-prs' %}
+| `no-commit-to-main` | Blocks commits directly on main/master |
+{%- endif %}
 {%- if hooks == 'python' %}
 | `ruff` | Python lint (with auto-fix) |
 | `ruff-format` | Python formatting |

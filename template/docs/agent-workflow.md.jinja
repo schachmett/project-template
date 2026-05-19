@@ -88,7 +88,7 @@ This project uses direct commits — no issue tracker, no PRs. The agent's role 
 
 Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
 
-Always branch from `main`. Keep branches short-lived.
+Always branch from `main`. Never commit directly to `main` — a pre-commit hook will block it. If you are on `main` when about to start work, stop and create a branch first.
 {%- else %}
 
 Commit directly to `main` for routine work. Create a branch only when a change is large enough to warrant a staged review before merging.
@@ -100,27 +100,38 @@ If a change affects durable behaviour, update the relevant doc in the same chang
 
 When a session produces a durable finding, route it to the right existing file without creating a new one. Create a new `docs/domain/` file only when a genuinely new subject area has no home. Write an ADR (in `docs/adr/`) whenever a non-obvious architectural decision is made.
 
-## Recommended session flow
+## Session flow
 {%- if workflow_style == 'issues-prs' %}
+
+The two mandatory stops from `AGENTS.md` are embedded here as explicit gates:
 
 1. Read `AGENTS.md`.
 2. Check `.ai/` for session notes or handoff context from the previous session.
-3. Run `{% if platform == 'github' %}gh{% else %}fj{% endif %} issue list` to orient on open work.
+3. Find or create the relevant issue: `{% if platform == 'github' %}gh{% else %}fj{% endif %} issue list`. **Do not proceed without an issue.**
 4. Read only the durable docs relevant to the task.
-5. Make the smallest coherent change that moves the task forward.
-6. Update docs if durable behaviour changed.
-7. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
-8. Commit; leave a brief handoff note in `.ai/` before pausing or switching models.
+5. Discuss the approach with the human until agreed.
+6. Write an implementation plan (what changes, in which files, why, how to verify).
+7. **→ STOP (plan gate).** Present the plan and wait. The human will respond with one of:
+   - *"Post the plan to the issue"* → post as a comment on the issue, then stop. Wait for *"go implement"* before touching any file.
+   - *"Skip the plan, start implementing"* → proceed to step 8.
+   Do not interpret anything else as permission to start coding.
+8. Branch from main: `git checkout main && git pull && git checkout -b <type>/<slug>`
+9. Implement the change. Keep it to the agreed scope — do not fix unrelated things.
+10. Run `make check`. Fix any failures before proceeding.
+11. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
+12. Open a PR: `{% if platform == 'github' %}gh{% else %}fj{% endif %} pr create --title "..." --body "..." --base main`
+13. **→ STOP (PR gate).** Leave a handoff note in `.ai/` and stop. The human reviews the diff and merges. Do not merge.
 {%- else %}
 
 1. Read `AGENTS.md`.
 2. Check `.ai/` for session notes or handoff context from the previous session.
 3. Read only the durable docs relevant to the task.
-4. Make the smallest coherent change that moves the task forward.
-5. Update docs if durable behaviour changed.
-6. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
-7. Stage relevant files, propose a commit message, and pause for human review.
-8. Leave a brief handoff note in `.ai/` before pausing or switching models.
+4. Implement the agreed change. Keep it to the agreed scope.
+5. Run `make check`. Fix any failures before proceeding.
+6. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
+7. Stage the relevant files (`git add <files>` — never `git add -A`) and propose a commit message.
+8. **→ STOP.** Wait for the human to review the staged diff and commit.
+9. Leave a brief handoff note in `.ai/` if needed.
 {%- endif %}
 
 ## Handoff expectations
@@ -129,7 +140,7 @@ When a session produces a durable finding, route it to the right existing file w
 - Assumptions made and open questions.
 - Whether any ADRs were written or a decision was deferred (and why).
 {%- if workflow_style == 'issues-prs' %}
-- Suggested commit message or confirmation the branch is clean.
+- PR link and whether CI is green.
 {%- else %}
 - Staged files and proposed commit message ready for human review.
 {%- endif %}
