@@ -7,12 +7,12 @@ Run all checks before opening a PR. CI enforces the same commands.
 ```bash
 {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen    # install / sync dependencies
 
-make fix      # ruff format + ruff check --fix (run before committing)
-make lint     # ruff + pyright only (fast feedback, no tests)
-make check    # full CI suite: format-check + lint + typecheck + test with coverage
+just fix      # ruff format + ruff check --fix (run before committing)
+just lint     # ruff + pyright only (fast feedback, no tests)
+just check    # full CI suite: format-check + lint + typecheck + test with coverage
 ```
 
-`make check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `{{ component_dir }}/` directory{% endif %}):
+`just check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `{{ component_dir }}/` directory{% endif %}):
 
 ```bash
 ruff format --check
@@ -21,7 +21,7 @@ pyright
 pytest --cov --cov-report=term --cov-report=html
 ```
 
-CI runs `make check` on every push and pull request.
+CI runs `just check` on every push and pull request.
 
 ## What CI checks
 
@@ -34,7 +34,7 @@ CI runs `make check` on every push and pull request.
 ## Commands
 
 ```bash
-make check    # project-specific checks
+just check    # project-specific checks
 ```
 
 <!-- TODO: add project-specific quality gate commands and their CI equivalents -->
@@ -43,7 +43,7 @@ make check    # project-specific checks
 
 | Command | CI step |
 |---|---|
-| `make check` | `quality` job |
+| `just check` | `quality` job |
 
 {% endif %}
 ## Pre-commit hooks
@@ -85,7 +85,7 @@ Active hooks:
 
 A change is ready to merge when:
 
-- [ ] `make check` (or equivalent) passes locally
+- [ ] `just check` (or equivalent) passes locally
 - [ ] New behaviour has test coverage
 - [ ] Any new architectural decision is recorded in `docs/adr/`
 - [ ] `docs/` updated if the change affects documented behaviour

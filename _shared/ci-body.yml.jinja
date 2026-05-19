@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install just
+        run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to /usr/local/bin
 {% if python != 'none' %}
       - uses: astral-sh/setup-uv@v5
         with:
@@ -25,4 +28,4 @@ jobs:
 
 {% endif %}
       - name: Check
-        run: make check
+        run: just check

@@ -1,0 +1,51 @@
+{%- if python == 'component' %}
+# Auto-format and fix imports
+fix:
+    cd {{ component_dir }} && uv run ruff format
+    cd {{ component_dir }} && uv run ruff check --fix
+
+# Ruff + pyright only (fast feedback, no tests)
+lint:
+    cd {{ component_dir }} && uv run ruff format --check
+    cd {{ component_dir }} && uv run ruff check
+    cd {{ component_dir }} && uv run pyright
+
+# Full CI suite: format-check + lint + typecheck + tests
+check:
+    cd {{ component_dir }} && uv run ruff format --check
+    cd {{ component_dir }} && uv run ruff check
+    cd {{ component_dir }} && uv run pyright
+    cd {{ component_dir }} && uv run pytest --cov --cov-report=term --cov-report=html
+{%- elif python == 'root' %}
+# Auto-format and fix imports
+fix:
+    uv run ruff format
+    uv run ruff check --fix
+
+# Ruff + pyright only (fast feedback, no tests)
+lint:
+    uv run ruff format --check
+    uv run ruff check
+    uv run pyright
+
+# Full CI suite: format-check + lint + typecheck + tests
+check:
+    uv run ruff format --check
+    uv run ruff check
+    uv run pyright
+    uv run pytest --cov --cov-report=term --cov-report=html
+{%- else %}
+# Project-specific checks
+check:
+{%- if hooks != 'none' %}
+    pre-commit run --all-files
+{%- else %}
+    @echo "No checks configured — add project-specific recipes here"
+{%- endif %}
+{%- endif %}
+{%- if has_api %}
+
+# Start the local docker compose stack
+up:
+    docker compose up
+{%- endif %}

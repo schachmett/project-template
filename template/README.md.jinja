@@ -16,14 +16,14 @@ Author: {{ author_name }}
 {% if python == 'root' %}
 ```bash
 uv sync
-make fix    # format + auto-fix imports
-make check  # full CI suite
+just fix    # format + auto-fix imports
+just check  # full CI suite
 ```
 {% elif python == 'component' %}
 ```bash
 cd {{ component_dir }} && uv sync
-make fix    # format + auto-fix imports
-make check  # full CI suite
+just fix    # format + auto-fix imports
+just check  # full CI suite
 ```
 {% endif %}
 
@@ -35,21 +35,23 @@ See [AGENTS.md](AGENTS.md) for the full agent workflow, documentation index, and
 ### Prerequisites
 
 - [uv](https://docs.astral.sh/uv/) ≥ 0.5
+- [just](https://just.systems/) (task runner)
 - Python {{ python_version }} (managed by uv via `.python-version`)
 
 ### Common commands
 
 | Command | Description |
 |---------|-------------|
-| `make fix` | Auto-format and fix imports (run before committing) |
-| `make lint` | Ruff + pyright only (fast feedback, no tests) |
-| `make check` | Full CI suite: format-check + lint + typecheck + tests |
+| `just fix` | Auto-format and fix imports (run before committing) |
+| `just lint` | Ruff + pyright only (fast feedback, no tests) |
+| `just check` | Full CI suite: format-check + lint + typecheck + tests |
+| `just --list` | Show all available recipes |
 {% endif %}
 {% if has_api %}
 
 ### Running locally
 
 ```bash
-make up    # starts docker compose stack
+just up    # starts docker compose stack
 ```
 {% endif %}

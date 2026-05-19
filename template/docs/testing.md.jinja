@@ -5,8 +5,8 @@
 ## Running tests
 
 ```bash
-make check    # full suite with branch coverage
-make lint     # ruff + pyright only (no tests)
+just check    # full suite with branch coverage
+just lint     # ruff + pyright only (no tests)
 ```
 
 To run tests alone without the full gate: `uv run pytest`{% if python == 'component' %} (from within `{{ component_dir }}/`){% endif %}.
@@ -47,7 +47,7 @@ Each entry is `(source_layer, forbidden_import_prefix)`. A single parametrized t
 
 ## Coverage
 
-Target: branch coverage over `{{ src_root }}/{{ package_name }}`. Config is in `pyproject.toml`. HTML report lands in `htmlcov/` after `make check`. The gate is 80% — the build fails below this threshold.
+Target: branch coverage over `{{ src_root }}/{{ package_name }}`. Config is in `pyproject.toml`. HTML report lands in `htmlcov/` after `just check`. The gate is 80% — the build fails below this threshold.
 
 Exclude deliberately unreachable branches with `# pragma: no cover`.
 

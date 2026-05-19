@@ -4,7 +4,7 @@
 
 Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}`.
 
-Run `make fix` (ruff format + ruff check --fix) before committing or running any quality gate. It handles formatting, import sorting, and safe auto-fixes automatically.
+Run `just fix` (ruff format + ruff check --fix) before committing or running any quality gate. It handles formatting, import sorting, and safe auto-fixes automatically.
 
 ### Formatting
 
@@ -27,7 +27,7 @@ Tests additionally allow: `S101` (asserts), `ARG002` (unused fixture args), `SLF
 ### Imports
 
 - Absolute imports only. No relative imports outside of `__init__.py`.
-- Import order managed by ruff/isort: stdlib → third-party → local. Run `make fix` to sort automatically.
+- Import order managed by ruff/isort: stdlib → third-party → local. Run `just fix` to sort automatically.
 
 ### Docstrings
 

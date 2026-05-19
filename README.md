@@ -48,12 +48,12 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
 │   ├── agent-workflow.md        # branching, PR/issue CLI, releases, session flow
 │   ├── architecture.md
 │   ├── codestyle.md
-│   ├── quality-gates.md         # make targets and CI mapping
+│   ├── quality-gates.md         # just targets and CI mapping
 │   ├── testing.md               # (if python ≠ none)
 │   ├── operations.md            # (if has_api)
 │   ├── adr/
 │   └── domain/
-├── Makefile                     # fix, lint, check, (up if has_api)
+├── justfile                     # fix, lint, check, (up if has_api)
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml

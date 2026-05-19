@@ -117,7 +117,7 @@ The two mandatory stops from `AGENTS.md` are embedded here as explicit gates:
    Do not interpret anything else as permission to start coding.
 8. Branch from main: `git checkout main && git pull && git checkout -b <type>/<slug>`
 9. Implement the change. Keep it to the agreed scope — do not fix unrelated things.
-10. Run `make check`. Fix any failures before proceeding.
+10. Run `just check`. Fix any failures before proceeding.
 11. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
 12. Open a PR: `{% if platform == 'github' %}gh{% else %}fj{% endif %} pr create --title "..." --body "..." --base main`
 13. **→ STOP (PR gate).** Leave a handoff note in `.ai/` and stop. The human reviews the diff and merges. Do not merge.
@@ -127,7 +127,7 @@ The two mandatory stops from `AGENTS.md` are embedded here as explicit gates:
 2. Check `.ai/` for session notes or handoff context from the previous session.
 3. Read only the durable docs relevant to the task.
 4. Implement the agreed change. Keep it to the agreed scope.
-5. Run `make check`. Fix any failures before proceeding.
+5. Run `just check`. Fix any failures before proceeding.
 6. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
 7. Stage the relevant files (`git add <files>` — never `git add -A`) and propose a commit message.
 8. **→ STOP.** Wait for the human to review the staged diff and commit.
