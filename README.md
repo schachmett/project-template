@@ -86,8 +86,50 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
             └── integration/
 ```
 
-## Updating a generated project
+## Rolling out changes
+
+### Updating a repo generated from this template
 
 ```bash
 copier update --trust
 ```
+
+Copier does a 3-way merge (old template rendering + your local changes + new template rendering) and writes conflict markers where both sides changed. Resolve conflicts, then commit.
+
+**Limitation — `_py_root` files are not properly merged.** The post-copy task moves `pyproject.toml`, `src/`, and `tests/` from the staging directory to their final paths. Copier's merge operates on the original template paths, so it doesn't find those files in the repo and overwrites them fresh. After running `copier update`, check what changed with `git diff HEAD -- pyproject.toml` and restore or manually merge as needed. A proper fix would be to replace the `_tasks` staging pattern with Copier's native exclude/conditional-path mechanism so files land at their final paths without a post-copy move.
+
+Files that merge cleanly (no task involvement): `docs/`, `AGENTS.md`, `justfile`, `.github/`, `.forgejo/`, `.pre-commit-config.yaml`.
+
+### Onboarding an existing repo (no copier history)
+
+The first import is manual — no `.copier-answers.yml` means no merge baseline.
+
+1. **Generate a fresh copy into a temp branch:**
+   ```bash
+   git checkout -b template-import
+   copier copy --trust --overwrite \
+     --data project_name=... \
+     --data python=root \
+     ... \
+     /path/to/project-template .
+   ```
+   This writes `.copier-answers.yml` and overwrites all template files including `pyproject.toml` and `src/`.
+
+2. **Restore your existing Python files:**
+   ```bash
+   git checkout HEAD -- pyproject.toml src/ tests/
+   ```
+
+3. **Manually merge pyproject.toml sections** you want from the template version (`git show template-import:pyproject.toml`): `[tool.pytest.*]`, `[tool.coverage.*]`, `[tool.pyright]`, `[tool.ruff.*]`.
+
+4. **Keep the template versions** of: `docs/`, `AGENTS.md`, `justfile`, CI workflows, `.pre-commit-config.yaml`.
+
+5. Commit. The repo now has `.copier-answers.yml` so future `copier update` calls work.
+
+| File | Action |
+|---|---|
+| `AGENTS.md`, `docs/`, `justfile`, CI | Keep template version |
+| `.pre-commit-config.yaml` | Keep template version |
+| `pyproject.toml` | Restore yours, cherry-pick `[tool.*]` sections |
+| `src/`, `tests/` | Always restore yours |
+| `README.md` | Restore yours, manually add `just` commands table |
