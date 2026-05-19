@@ -16,8 +16,13 @@ Use `docs/` for information that should survive beyond the current task:
 
 Use [AGENTS.md](../AGENTS.md) as the map of what already exists before creating a new durable file.
 
+### Working memory
+
+`.ai/` is gitignored. Use it for session handoffs, scratch notes, ad-hoc scripts, and intermediate outputs. Anything worth preserving beyond the session belongs in an issue comment or in `docs/`.
+{%- if workflow_style == 'issues-prs' %}
+
 ### Issues and PRs
-{% if platform == 'github' %}
+{%- if platform == 'github' %}
 
 Issues and PRs on GitHub are the authoritative record of all planned and completed work.
 
@@ -32,12 +37,12 @@ gh pr create --title "..." --body "..." --base main
 gh pr list
 gh release create v1.2.3 --title "v1.2.3" --notes "..."
 ```
-{% else %}
+{%- else %}
 
 Issues and PRs on Forgejo are the authoritative record of all planned and completed work.
-{% if platform == 'both' %}
+{%- if platform == 'both' %}
 GitHub is a convenience mirror — code is readable there, but all workflow (issues, PRs, releases) happens on Forgejo.
-{% endif %}
+{%- endif %}
 
 **Issues** capture problems, goals, and planning. Run `fj issue list` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
 
@@ -50,18 +55,32 @@ fj pr create --title "..." --body "..." --base main
 fj pr list
 fj release create v1.2.3 --title "v1.2.3" --notes "..."
 ```
-{% endif %}
+{%- endif %}
 
 **Issue title conventions:**
 - Plain English, problem-focused. Describes what is wrong or needed, not what will be done.
 - No type prefix (`fix:`, `docs:` etc. belong on commits, not issue titles).
 - Do not preempt the solution in the title.
+{%- else %}
 
-### Working memory
+### Commits
 
-`.ai/` is gitignored. Use it for session handoffs, scratch notes, ad-hoc scripts, and intermediate outputs. Anything worth preserving beyond the session belongs in an issue comment or in `docs/`.
+This project uses direct commits — no issue tracker, no PRs. The agent's role is to implement and stage; the human reviews and commits.
+
+**Agent responsibilities:**
+- Implement the requested change.
+- Stage the relevant files: `git add <files>` (never `git add -A` or `git add .`).
+- Propose a commit message in conventional commit format and pause.
+- Do **not** commit, push, or open PRs.
+
+**Human responsibilities:**
+- Review staged changes (`git diff --cached`).
+- Commit if satisfied: `git commit -m "..."`.
+- Push when ready: `git push`.
+{%- endif %}
 
 ## Branching
+{%- if workflow_style == 'issues-prs' %}
 
 ```
 <type>/<short-description>
@@ -70,6 +89,10 @@ fj release create v1.2.3 --title "v1.2.3" --notes "..."
 Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
 
 Always branch from `main`. Keep branches short-lived.
+{%- else %}
+
+Commit directly to `main` for routine work. Create a branch only when a change is large enough to warrant a staged review before merging.
+{%- endif %}
 
 ## Drift policy
 
@@ -78,6 +101,7 @@ If a change affects durable behaviour, update the relevant doc in the same chang
 When a session produces a durable finding, route it to the right existing file without creating a new one. Create a new `docs/domain/` file only when a genuinely new subject area has no home. Write an ADR (in `docs/adr/`) whenever a non-obvious architectural decision is made.
 
 ## Recommended session flow
+{%- if workflow_style == 'issues-prs' %}
 
 1. Read `AGENTS.md`.
 2. Check `.ai/` for session notes or handoff context from the previous session.
@@ -87,18 +111,46 @@ When a session produces a durable finding, route it to the right existing file w
 6. Update docs if durable behaviour changed.
 7. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
 8. Commit; leave a brief handoff note in `.ai/` before pausing or switching models.
+{%- else %}
+
+1. Read `AGENTS.md`.
+2. Check `.ai/` for session notes or handoff context from the previous session.
+3. Read only the durable docs relevant to the task.
+4. Make the smallest coherent change that moves the task forward.
+5. Update docs if durable behaviour changed.
+6. Did this session make any non-obvious design decisions? If yes, write an ADR in `docs/adr/` before handing off.
+7. Stage relevant files, propose a commit message, and pause for human review.
+8. Leave a brief handoff note in `.ai/` before pausing or switching models.
+{%- endif %}
 
 ## Handoff expectations
 
 - What changed and what is next.
 - Assumptions made and open questions.
 - Whether any ADRs were written or a decision was deferred (and why).
+{%- if workflow_style == 'issues-prs' %}
 - Suggested commit message or confirmation the branch is clean.
+{%- else %}
+- Staged files and proposed commit message ready for human review.
+{%- endif %}
 
 ## Releases
+{%- if python != 'none' %}
+
+Before tagging, update the changelog:
 
 ```bash
-{% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "..."
+uv run git-cliff -o CHANGELOG.md --tag v1.2.3
+git add CHANGELOG.md && git commit -m "chore: update changelog for v1.2.3"
+git push
+```
+
+Then create the release:
+
+{%- endif %}
+
+```bash
+{% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "$({% if python != 'none' %}uv run git-cliff --latest --strip header{% else %}echo 'Release v1.2.3'{% endif %})"
 ```
 
 This creates the release page and pushes the underlying tag, which triggers the CD workflow{% if has_api %} (builds and pushes the Docker image){% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

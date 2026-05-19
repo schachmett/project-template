@@ -18,6 +18,13 @@ _exclude:
   - "{% if not has_api %}.github/workflows/cd.yml{% endif %}"
   # Conditional pre-commit
   - "{% if hooks == 'none' %}.pre-commit-config.yaml{% endif %}"
+  # Conditional Docker files (only if has_api)
+  - "{% if not has_api %}Dockerfile{% endif %}"
+  - "{% if not has_api %}docker-compose.yml{% endif %}"
+  # Conditional secrets example (only if env-only)
+  - "{% if secrets != 'env-only' %}.env.example{% endif %}"
+  # Conditional changelog config (only if python != none)
+  - "{% if python == 'none' %}cliff.toml{% endif %}"
 
 _tasks:
   # python=root: unpack _py_root/ contents into project root
@@ -38,8 +45,10 @@ _message_after_copy: |
     git init && git add -A && git commit -m "chore: initial project setup"
   {%- if python == 'root' %}
     uv sync
+    git add uv.lock && git commit -m "chore: lock dependencies"
   {%- elif python == 'component' %}
-    cd {{ component_dir }} && uv sync
+    cd {{ component_dir }} && uv sync && cd ..
+    git add {{ component_dir }}/uv.lock && git commit -m "chore: lock dependencies"
   {%- endif %}
   {%- if hooks != 'none' %}
     pre-commit install
@@ -151,6 +160,14 @@ component_dir:
   help: "Subdirectory name for the Python component (only when python=component)"
   default: "backend"
   when: "{{ python == 'component' }}"
+
+workflow_style:
+  type: str
+  help: "Agent workflow style: issues-prs (agent opens issues/PRs, human reviews+merges) or direct (agent stages changes, human commits)"
+  choices:
+    - issues-prs
+    - direct
+  default: issues-prs
 
 # ── Computed variables (never asked) ──────────────────────────────────────────
 

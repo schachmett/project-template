@@ -7,16 +7,27 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: ["--maxkb=500"]
-{% if hooks == 'python' %}
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.8.6
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
 
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ["--baseline", ".secrets.baseline"]
+{% if hooks == 'python' %}
   - repo: local
     hooks:
+      - id: ruff
+        name: ruff
+        entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run ruff check --fix'{% else %}uv run ruff check --fix{% endif %}
+        language: system
+        types: [python]
+        pass_filenames: false
+      - id: ruff-format
+        name: ruff-format
+        entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run ruff format'{% else %}uv run ruff format{% endif %}
+        language: system
+        types: [python]
+        pass_filenames: false
       - id: pyright
         name: pyright
         entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run pyright'{% else %}uv run pyright{% endif %}

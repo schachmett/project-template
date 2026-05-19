@@ -2,7 +2,9 @@
 name = "{{ package_name }}"
 dynamic = ["version"]
 description = ""
+{%- if python == 'root' %}
 readme = "README.md"
+{%- endif %}
 requires-python = ">={{ python_version }}"
 {% if license == 'mit' %}
 license = "MIT"
@@ -22,9 +24,12 @@ dependencies = []
 [dependency-groups]
 dev = [
   "coverage[toml]",
+  "detect-secrets",
+  "git-cliff",
   "pytest>=9.0.0",
   "pytest-cov",
-  "ruff>=0.14",
+  "pytest-randomly",
+  "ruff>=0.8",
   "pyright",
 {% if hooks != 'none' %}
   "pre-commit",
@@ -35,8 +40,9 @@ dev = [
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
-[tool.hatch]
-version.source = "vcs"
+[tool.hatch.version]
+source = "vcs"
+fallback-version = "0.0.0"
 
 [tool.uv]
 cache-dir = "./.cache/uv"
@@ -45,16 +51,15 @@ cache-dir = "./.cache/uv"
 packages = ["src/{{ package_name }}"]
 
 [tool.pytest.ini_options]
-strict = true
-addopts = ["--color=yes", "-x", "--failed-first"]
+addopts = ["--color=yes", "-x", "--failed-first", "--strict-markers", "--strict-config"]
 testpaths = ["tests"]
 pythonpath = ["src"]
 
 [tool.coverage]
 run.source = ["src"]
 run.branch = true
-run.parallel = true
 report.exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:"]
+report.fail_under = 80
 report.skip_covered = true
 report.precision = 1
 html.directory = "htmlcov"

@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+{%- if secrets == 'env-only' %}
+    env_file:
+      - .env
+{%- elif secrets == 'sops' %}
+    # Decrypt secrets before starting: sops -d secrets/production.yaml > .env.runtime
+    env_file:
+      - .env.runtime
+{%- endif %}
+    # TODO: add volumes, depends_on, healthcheck as needed

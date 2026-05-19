@@ -11,7 +11,7 @@ import pytest
 # Example: ("db", "{{ package_name }}.cli") — db layer must not import from cli.
 BOUNDARIES: list[tuple[str, str]] = []
 
-_SRC = Path("{% if python == 'component' %}{{ component_dir }}/{% endif %}src/{{ package_name }}")
+_SRC = Path("src/{{ package_name }}")
 
 
 def _imports_of(path: Path) -> set[str]:

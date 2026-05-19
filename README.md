@@ -1,6 +1,6 @@
 # project-template
 
-[Copier](https://copier.readthedocs.io/) template for new projects. Generates agent workflow docs, Claude rules, CI/CD pipelines, and an optional Python project skeleton.
+[Copier](https://copier.readthedocs.io/) template for new projects. Generates agent workflow docs, CI/CD pipelines, and an optional Python project skeleton.
 
 ## Quick start
 
@@ -20,13 +20,16 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
 | `author_name` | str | _(empty)_ | Optional |
 | `platform` | choice | `forgejo` | `forgejo` / `github` / `both` |
 | `forgejo_url` | str | — | Asked when platform ≠ github |
+| `org` | str | — | GitHub/Forgejo org or username |
 | `python` | choice | `none` | `root` / `component` / `none` |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
-| `has_api` | bool | `false` | Adds `operations.md`, `runbooks.md`, `cd.yml` |
+| `has_api` | bool | `false` | Adds `operations.md`, `Dockerfile`, `docker-compose.yml`, `cd.yml` |
 | `has_cli` | bool | `false` | Adds `[project.scripts]` entry to `pyproject.toml` |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
+| `component_dir` | str | `backend` | Asked when python=component |
+| `workflow_style` | choice | `issues-prs` | `issues-prs` / `direct` |
 
 `hooks=python` requires `python ≠ none`.
 
@@ -37,20 +40,20 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
 ├── AGENTS.md                    # agent entry point → links to all docs
 ├── README.md
 ├── .gitignore
-├── .ai/                         # gitignored scratch space (dir kept via .gitkeep)
-├── .claude/rules/
-│   ├── docs.yml                 # glob: docs/**
-│   └── python.yml               # glob: src/**/*.py  (if python ≠ none)
+├── .env.example                 # (if secrets=env-only)
+├── cliff.toml                   # (if python ≠ none) git-cliff changelog config
+├── Dockerfile                   # (if has_api)
+├── docker-compose.yml           # (if has_api)
 ├── docs/
-│   ├── agent-workflow.md        # branching, PR/issue CLI, releases
+│   ├── agent-workflow.md        # branching, PR/issue CLI, releases, session flow
 │   ├── architecture.md
 │   ├── codestyle.md
 │   ├── quality-gates.md         # make targets and CI mapping
+│   ├── testing.md               # (if python ≠ none)
 │   ├── operations.md            # (if has_api)
-│   ├── runbooks.md              # (if has_api)
 │   ├── adr/
 │   └── domain/
-├── Makefile                     # fmt, lint, typecheck, test, check, (up)
+├── Makefile                     # fix, lint, check, (up if has_api)
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml
@@ -60,15 +63,27 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
 │   └── cd.yml                   # (if has_api)
 │
 ├── [python=root]
-│   ├── pyproject.toml · .python-version
+│   ├── pyproject.toml · .python-version · cliff.toml
 │   ├── src/<package>/
+│   │   ├── __init__.py          # exposes __version__
+│   │   └── py.typed
 │   └── tests/
+│       ├── conftest.py
+│       ├── test_imports.py      # architectural boundary enforcement
+│       ├── <package>/           # mirrors src/<package>/
+│       └── integration/
 │
 └── [python=component]
-    └── backend/
+    └── <component_dir>/         # default: backend/
         ├── pyproject.toml · .python-version
         ├── src/<package>/
+        │   ├── __init__.py      # exposes __version__
+        │   └── py.typed
         └── tests/
+            ├── conftest.py
+            ├── test_imports.py
+            ├── <package>/
+            └── integration/
 ```
 
 ## Updating a generated project

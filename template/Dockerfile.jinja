@@ -1,0 +1,24 @@
+FROM python:{{ python_version }}-slim
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
+
+WORKDIR /app
+
+# Install dependencies first (cached layer — only rebuilds when lock file changes)
+{% if python == 'component' %}
+COPY {{ component_dir }}/pyproject.toml {{ component_dir }}/uv.lock ./
+{% else %}
+COPY pyproject.toml uv.lock ./
+{% endif %}
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Copy source and install project
+{% if python == 'component' %}
+COPY {{ component_dir }}/src ./src
+{% else %}
+COPY src ./src
+{% endif %}
+RUN uv sync --frozen --no-dev
+
+# TODO: replace with your project's actual entry point
+CMD ["uv", "run", "python", "-m", "{{ package_name }}"]

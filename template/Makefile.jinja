@@ -4,11 +4,16 @@ _UV := cd {{ component_dir }} && uv run
 _UV := uv run
 {%- endif %}
 {% if python != 'none' %}
-.PHONY: fix check{% if has_api %} up{% endif %}
+.PHONY: fix lint check{% if has_api %} up{% endif %}
 
 fix:
 	$(_UV) ruff format
 	$(_UV) ruff check --fix
+
+lint:
+	$(_UV) ruff format --check
+	$(_UV) ruff check
+	$(_UV) pyright
 
 check:
 	$(_UV) ruff format --check

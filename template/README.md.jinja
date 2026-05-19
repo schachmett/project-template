@@ -42,9 +42,8 @@ See [AGENTS.md](AGENTS.md) for the full agent workflow, documentation index, and
 | Command | Description |
 |---------|-------------|
 | `make fix` | Auto-format and fix imports (run before committing) |
+| `make lint` | Ruff + pyright only (fast feedback, no tests) |
 | `make check` | Full CI suite: format-check + lint + typecheck + tests |
-| `make test` | Run tests only (faster) |
-| `make typecheck` | pyright only |
 {% endif %}
 {% if has_api %}
 

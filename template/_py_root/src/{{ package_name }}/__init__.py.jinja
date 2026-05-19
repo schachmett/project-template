@@ -1,1 +1,3 @@
-# {{ package_name }}
+from importlib.metadata import version
+
+__version__ = version("{{ package_name }}")

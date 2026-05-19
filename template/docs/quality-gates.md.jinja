@@ -5,9 +5,10 @@ Run all checks before opening a PR. CI enforces the same commands.
 ## Commands
 
 ```bash
-{% if python == 'component' %}cd {{ component_dir }} &&{% endif %}uv sync    # install / sync dependencies
+{% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen    # install / sync dependencies
 
 make fix      # ruff format + ruff check --fix (run before committing)
+make lint     # ruff + pyright only (fast feedback, no tests)
 make check    # full CI suite: format-check + lint + typecheck + test with coverage
 ```
 
@@ -27,7 +28,7 @@ CI runs `make check` on every push and pull request.
 1. **Format** — ruff format verifies consistent formatting (no auto-fix in CI)
 2. **Lint** — ruff with `select = ["ALL"]`; see `pyproject.toml` for the ignore list
 3. **Typecheck** — pyright strict; no implicit `Any`, all public functions annotated
-4. **Tests** — pytest with branch coverage
+4. **Tests** — pytest with branch coverage; fails if coverage drops below 80%
 
 {% else %}
 ## Commands
@@ -69,6 +70,7 @@ Active hooks:
 | `end-of-file-fixer` | Files end with newline (all files) |
 | `check-yaml` | Valid YAML syntax |
 | `check-added-large-files` | No accidental large file commits |
+| `detect-secrets` | No secrets or credentials committed |
 {%- if hooks == 'python' %}
 | `ruff` | Python lint (with auto-fix) |
 | `ruff-format` | Python formatting |

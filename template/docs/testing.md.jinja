@@ -1,26 +1,31 @@
-{% if python != 'none' %}
+{%- if python != 'none' -%}
+{%- set src_root = component_dir ~ '/src' if python == 'component' else 'src' -%}
 # Testing
-{% set src_root = component_dir ~ '/src' if python == 'component' else 'src' %}
 
 ## Running tests
 
 ```bash
 make check    # full suite with branch coverage
+make lint     # ruff + pyright only (no tests)
 ```
 
-To run tests alone without the full gate: `uv run pytest` (or `cd {{ component_dir }} && uv run pytest` for component layout).
+To run tests alone without the full gate: `uv run pytest`{% if python == 'component' %} (from within `{{ component_dir }}/`){% endif %}.
 
 ## Layout
 
 ```
 tests/
-  conftest.py       # shared fixtures
-  test_imports.py   # architectural boundary enforcement
-  unit/             # pure logic, no I/O
-  integration/      # real I/O (db, filesystem, network)
+  conftest.py              # shared fixtures
+  test_imports.py          # architectural boundary enforcement
+  {{ package_name }}/      # mirrors src/{{ package_name }}/ — one test file per module
+  integration/             # tests that cross a real I/O boundary (db, filesystem, network)
 ```
 
-Keep unit tests fast and free of I/O. Integration tests may use real databases, real files, or real HTTP — never mocks of those boundaries.
+**Module tests** (`tests/{{ package_name }}/`) mirror the production package. A test for `src/{{ package_name }}/foo.py` lives at `tests/{{ package_name }}/test_foo.py`.
+
+**Integration tests** (`tests/integration/`) touch real external resources — database connections, real files, real HTTP. Never use mocks at these boundaries; mocks hide the very failures you want to catch.
+
+Keep module tests free of I/O. If a test needs a file, socket, or database, it belongs in `integration/`.
 
 ## Dependency-direction tests
 
@@ -42,9 +47,13 @@ Each entry is `(source_layer, forbidden_import_prefix)`. A single parametrized t
 
 ## Coverage
 
-Target: branch coverage over `{{ src_root }}/{{ package_name }}`. Config is in `pyproject.toml`. HTML report lands in `htmlcov/` after `make check`.
+Target: branch coverage over `{{ src_root }}/{{ package_name }}`. Config is in `pyproject.toml`. HTML report lands in `htmlcov/` after `make check`. The gate is 80% — the build fails below this threshold.
 
 Exclude deliberately unreachable branches with `# pragma: no cover`.
+
+## Test ordering
+
+`pytest-randomly` randomises test execution order on every run. This catches hidden test interdependencies early. The seed is printed at the start of each run; use `--randomly-seed=<N>` to reproduce a specific order.
 {% else %}
 # Testing
 

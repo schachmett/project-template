@@ -8,12 +8,12 @@ Agent entry point. Read this first, then the docs relevant to your task before w
 - [docs/architecture.md](docs/architecture.md) — system design and component boundaries
 - [docs/codestyle.md](docs/codestyle.md) — code conventions and docstring guidance
 - [docs/quality-gates.md](docs/quality-gates.md) — commands to run before opening a PR
-{% if python != 'none' %}
+{%- if python != 'none' %}
 - [docs/testing.md](docs/testing.md) — testing guidelines and dependency-direction tests
-{% endif %}
-{% if has_api %}
+{%- endif %}
+{%- if has_api %}
 - [docs/operations.md](docs/operations.md) — deployment, infrastructure, environment config, and runbooks
-{% endif %}
+{%- endif %}
 - [docs/adr/README.md](docs/adr/README.md) — ADR index and format guide
 - [docs/domain/](docs/domain/) — domain-specific documentation
 
