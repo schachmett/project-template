@@ -5,11 +5,14 @@ _min_copier_version: "9.0"
 _exclude:
   # Conditional docs
   - "{% if not has_api %}docs/operations.md{% endif %}"
-  # _py_root/ is a staging directory for Python project files.
-  # For python=root: _tasks moves contents to project root.
-  # For python=component: _tasks renames the whole dir to backend/.
-  # For python=none: excluded entirely.
-  - "{% if python == 'none' %}_py_root{% endif %}"
+  # Python project files: root layout lives at the project root,
+  # component layout lives under {{ component_dir }}/.
+  # Only one set is rendered depending on the python variable.
+  - "{% if python != 'root' %}/pyproject.toml{% endif %}"
+  - "{% if python != 'root' %}/.python-version{% endif %}"
+  - "{% if python != 'root' %}/src{% endif %}"
+  - "{% if python != 'root' %}/tests{% endif %}"
+  - "{% if python != 'component' %}{{ component_dir }}{% endif %}"
   # Conditional CI/CD platforms
   - "{% if platform == 'github' %}.forgejo{% endif %}"
   - "{% if platform == 'forgejo' %}.github{% endif %}"
@@ -25,19 +28,6 @@ _exclude:
   - "{% if secrets != 'env-only' %}.env.example{% endif %}"
   # Conditional changelog config (only if python != none)
   - "{% if python == 'none' %}cliff.toml{% endif %}"
-
-_tasks:
-  # python=root: unpack _py_root/ contents into project root
-  - command: >-
-      mv _py_root/pyproject.toml . &&
-      mv _py_root/.python-version . &&
-      mv _py_root/src . &&
-      mv _py_root/tests . &&
-      rm -rf _py_root
-    when: "{% if python == 'root' %}true{% endif %}"
-  # python=component: rename _py_root/ to the component directory
-  - command: "mv _py_root {{ component_dir }}"
-    when: "{% if python == 'component' %}true{% endif %}"
 
 _message_after_copy: |
   Project "{{ project_name }}" created. Next steps:

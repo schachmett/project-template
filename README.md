@@ -5,12 +5,10 @@
 ## Quick start
 
 ```bash
-copier copy --trust gh:schachmett/project-template <destination>
+copier copy gh:schachmett/project-template <destination>
 # or from Forgejo:
-copier copy --trust https://git.pw13.eu/simon/project-template <destination>
+copier copy https://git.pw13.eu/simon/project-template <destination>
 ```
-
-`--trust` is required: after copying, a short shell task arranges the Python project files into their final layout.
 
 ## Parameters
 
@@ -91,14 +89,12 @@ copier copy --trust https://git.pw13.eu/simon/project-template <destination>
 ### Updating a repo generated from this template
 
 ```bash
-copier update --trust
+copier update
 ```
 
 Copier does a 3-way merge (old template rendering + your local changes + new template rendering) and writes conflict markers where both sides changed. Resolve conflicts, then commit.
 
-**Limitation — `_py_root` files are not properly merged.** The post-copy task moves `pyproject.toml`, `src/`, and `tests/` from the staging directory to their final paths. Copier's merge operates on the original template paths, so it doesn't find those files in the repo and overwrites them fresh. After running `copier update`, check what changed with `git diff HEAD -- pyproject.toml` and restore or manually merge as needed. A proper fix would be to replace the `_tasks` staging pattern with Copier's native exclude/conditional-path mechanism so files land at their final paths without a post-copy move.
-
-Files that merge cleanly (no task involvement): `docs/`, `AGENTS.md`, `justfile`, `.github/`, `.forgejo/`, `.pre-commit-config.yaml`.
+All template files render directly to their final paths — no post-copy tasks. The 3-way merge works correctly across the entire project including `pyproject.toml`.
 
 ### Onboarding an existing repo (no copier history)
 
@@ -107,7 +103,7 @@ The first import is manual — no `.copier-answers.yml` means no merge baseline.
 1. **Generate a fresh copy into a temp branch:**
    ```bash
    git checkout -b template-import
-   copier copy --trust --overwrite \
+   copier copy --overwrite \
      --data project_name=... \
      --data python=root \
      ... \
