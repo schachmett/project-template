@@ -22,7 +22,6 @@ copier copy https://git.pw13.eu/simon/project-template <destination>
 | `python` | choice | `none` | `root` / `component` / `none` |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
 | `has_api` | bool | `false` | Adds `operations.md`, `Dockerfile`, `docker-compose.yml`, `cd.yml` |
-| `has_cli` | bool | `false` | Adds `[project.scripts]` entry to `pyproject.toml` |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |

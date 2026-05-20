@@ -111,11 +111,6 @@ has_api:
   help: Does this project expose an HTTP API?
   default: false
 
-has_cli:
-  type: bool
-  help: Does this project include a CLI entrypoint?
-  default: false
-
 license:
   type: str
   help: License

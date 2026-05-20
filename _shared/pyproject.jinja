@@ -15,11 +15,6 @@ license = "AGPL-3.0-or-later"
 authors = [{ name = "{{ author_name }}" }]
 {% endif %}
 dependencies = []
-{% if has_cli %}
-
-[project.scripts]
-{{ project_name }} = "{{ package_name }}.cli:main"
-{% endif %}
 
 [dependency-groups]
 dev = [
