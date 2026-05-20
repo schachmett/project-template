@@ -43,7 +43,7 @@ check:
     @echo "No checks configured — add project-specific recipes here"
 {%- endif %}
 {%- endif %}
-{%- if has_api %}
+{%- if is_service %}
 
 # Start the local docker compose stack
 up:

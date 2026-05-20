@@ -164,4 +164,4 @@ Then create the release:
 {% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "$({% if python != 'none' %}uv run git-cliff --latest --strip header{% else %}echo 'Release v1.2.3'{% endif %})"
 ```
 
-This creates the release page and pushes the underlying tag, which triggers the CD workflow{% if has_api %} (builds and pushes the Docker image){% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.
+This creates the release page and pushes the underlying tag, which triggers the CD workflow{% if is_service %} (builds and pushes the Docker image){% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

@@ -4,7 +4,7 @@ _min_copier_version: "9.0"
 
 _exclude:
   # Conditional docs
-  - "{% if not has_api %}docs/operations.md{% endif %}"
+  - "{% if not is_service %}docs/operations.md{% endif %}"
   # Python project files: root layout lives at the project root,
   # component layout lives under {{ component_dir }}/.
   # Only one set is rendered depending on the python variable.
@@ -16,14 +16,14 @@ _exclude:
   # Conditional CI/CD platforms
   - "{% if platform == 'github' %}.forgejo{% endif %}"
   - "{% if platform == 'forgejo' %}.github{% endif %}"
-  # Conditional CD (only if has_api)
-  - "{% if not has_api %}.forgejo/workflows/cd.yml{% endif %}"
-  - "{% if not has_api %}.github/workflows/cd.yml{% endif %}"
+  # Conditional CD (only if is_service)
+  - "{% if not is_service %}.forgejo/workflows/cd.yml{% endif %}"
+  - "{% if not is_service %}.github/workflows/cd.yml{% endif %}"
   # Conditional pre-commit
   - "{% if hooks == 'none' %}.pre-commit-config.yaml{% endif %}"
-  # Conditional Docker files (only if has_api)
-  - "{% if not has_api %}Dockerfile{% endif %}"
-  - "{% if not has_api %}docker-compose.yml{% endif %}"
+  # Conditional Docker files (only if is_service)
+  - "{% if not is_service %}Dockerfile{% endif %}"
+  - "{% if not is_service %}docker-compose.yml{% endif %}"
   # Conditional secrets example (only if env-only)
   - "{% if secrets != 'env-only' %}.env.example{% endif %}"
   # Conditional changelog config (only if python != none)
@@ -106,9 +106,9 @@ python_version:
   default: "3.14"
   when: "{{ python != 'none' }}"
 
-has_api:
+is_service:
   type: bool
-  help: Does this project expose an HTTP API?
+  help: "Does this project run as a long-running service? (adds Dockerfile, docker-compose, operations.md, CD pipeline)"
   default: false
 
 license:

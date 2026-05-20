@@ -21,7 +21,7 @@ copier copy https://git.pw13.eu/simon/project-template <destination>
 | `org` | str | — | GitHub/Forgejo org or username |
 | `python` | choice | `none` | `root` / `component` / `none` |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
-| `has_api` | bool | `false` | Adds `operations.md`, `Dockerfile`, `docker-compose.yml`, `cd.yml` |
+| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `docker-compose.yml`, `cd.yml` |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
@@ -39,25 +39,25 @@ copier copy https://git.pw13.eu/simon/project-template <destination>
 ├── .gitignore
 ├── .env.example                 # (if secrets=env-only)
 ├── cliff.toml                   # (if python ≠ none) git-cliff changelog config
-├── Dockerfile                   # (if has_api)
-├── docker-compose.yml           # (if has_api)
+├── Dockerfile                   # (if is_service)
+├── docker-compose.yml           # (if is_service)
 ├── docs/
 │   ├── agent-workflow.md        # branching, PR/issue CLI, releases, session flow
 │   ├── architecture.md
 │   ├── codestyle.md
 │   ├── quality-gates.md         # just targets and CI mapping
 │   ├── testing.md               # (if python ≠ none)
-│   ├── operations.md            # (if has_api)
+│   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
-├── justfile                     # fix, lint, check, (up if has_api)
+├── justfile                     # fix, lint, check, (up if is_service)
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml
-│   └── cd.yml                   # (if has_api)
+│   └── cd.yml                   # (if is_service)
 ├── .github/workflows/           # (if platform ≠ forgejo)
 │   ├── ci.yml
-│   └── cd.yml                   # (if has_api)
+│   └── cd.yml                   # (if is_service)
 │
 ├── [python=root]
 │   ├── pyproject.toml · .python-version · cliff.toml

@@ -33,7 +33,7 @@ Stage your changes and propose a commit message. Do not commit. Wait for the hum
 {%- if python != 'none' %}
 - [docs/testing.md](docs/testing.md) — testing guidelines and dependency-direction tests
 {%- endif %}
-{%- if has_api %}
+{%- if is_service %}
 - [docs/operations.md](docs/operations.md) — deployment, infrastructure, environment config, and runbooks
 {%- endif %}
 - [docs/adr/README.md](docs/adr/README.md) — ADR index and format guide
