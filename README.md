@@ -7,7 +7,7 @@
 ```bash
 copier copy gh:schachmett/project-template <destination>
 # or from Forgejo:
-copier copy https://git.pw13.eu/simon/project-template <destination>
+copier copy https://git.pw13.eu/simon/project-template.git <destination>
 ```
 
 ## Parameters
