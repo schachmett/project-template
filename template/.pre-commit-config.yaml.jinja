@@ -27,21 +27,15 @@ repos:
 {% if hooks == 'python' %}
   - repo: local
     hooks:
-      - id: ruff
-        name: ruff
-        entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run ruff check --fix'{% else %}uv run ruff check --fix{% endif %}
+      - id: fix
+        name: fix (ruff format + lint)
+        entry: just fix
         language: system
         types: [python]
         pass_filenames: false
-      - id: ruff-format
-        name: ruff-format
-        entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run ruff format'{% else %}uv run ruff format{% endif %}
-        language: system
-        types: [python]
-        pass_filenames: false
-      - id: pyright
-        name: pyright
-        entry: {% if python == 'component' %}bash -c 'cd {{ component_dir }} && uv run pyright'{% else %}uv run pyright{% endif %}
+      - id: typecheck
+        name: typecheck (pyright)
+        entry: just typecheck
         language: system
         types: [python]
         pass_filenames: false

@@ -39,6 +39,23 @@ Stage your changes and propose a commit message. Do not commit. Wait for the hum
 - [docs/adr/README.md](docs/adr/README.md) — ADR index and format guide
 - [docs/domain/](docs/domain/) — domain-specific documentation
 
+## Standard tooling
+{% if python != 'none' %}
+Use `just` for all routine tasks — it is the canonical entry point:
+
+| Recipe | What it does |
+|---|---|
+| `just fix` | ruff format + ruff check --fix (auto-fixes, run before committing) |
+| `just lint` | format-check + ruff lint (fast, no typecheck) |
+| `just typecheck` | pyright only |
+| `just test` | pytest with coverage |
+| `just static` | lint + typecheck (no tests) |
+| `just check` | full suite — same as CI |
+{% else %}
+Use `just check` to run all project checks (same as CI).
+{% endif %}
+Never call `uv run ruff`, `pyright`, or `pytest` directly — always go through `just`.
+
 ## Working memory
 
 `.ai/` is gitignored. Use it freely for scratch notes, ad-hoc scripts, intermediate outputs, and session handoffs. Never reference `.ai/` paths in committed files or docs.

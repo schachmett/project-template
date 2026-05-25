@@ -7,12 +7,15 @@ Run all checks before opening a PR. CI enforces the same commands.
 ```bash
 {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen    # install / sync dependencies
 
-just fix      # ruff format + ruff check --fix (run before committing)
-just lint     # ruff + pyright only (fast feedback, no tests)
-just check    # full CI suite: format-check + lint + typecheck + test with coverage
+just fix       # ruff format + ruff check --fix (auto-fixes, run before committing)
+just lint      # format-check + ruff lint (fast, no typecheck)
+just typecheck # pyright only
+just test      # pytest with coverage
+just static    # lint + typecheck (no tests)
+just check     # full CI suite
 ```
 
-`just check` runs these in sequence (via `uv run` in the project{% if python == 'component' %}'s `{{ component_dir }}/` directory{% endif %}):
+`just check` composes atomic recipes (`just static test`), which in turn run:
 
 ```bash
 ruff format --check

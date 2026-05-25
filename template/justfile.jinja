@@ -4,36 +4,48 @@ fix:
     cd {{ component_dir }} && uv run ruff format
     cd {{ component_dir }} && uv run ruff check --fix
 
-# Ruff + pyright only (fast feedback, no tests)
+# Format check + ruff lint (no typecheck)
 lint:
     cd {{ component_dir }} && uv run ruff format --check
     cd {{ component_dir }} && uv run ruff check
+
+# Type checking
+typecheck:
     cd {{ component_dir }} && uv run pyright
 
-# Full CI suite: format-check + lint + typecheck + tests
-check:
-    cd {{ component_dir }} && uv run ruff format --check
-    cd {{ component_dir }} && uv run ruff check
-    cd {{ component_dir }} && uv run pyright
+# Run tests with coverage
+test:
     cd {{ component_dir }} && uv run pytest --cov --cov-report=term --cov-report=html
+
+# Static analysis: lint + typecheck, no tests
+static: lint typecheck
+
+# Full CI suite
+check: static test
 {%- elif python == 'root' %}
 # Auto-format and fix imports
 fix:
     uv run ruff format
     uv run ruff check --fix
 
-# Ruff + pyright only (fast feedback, no tests)
+# Format check + ruff lint (no typecheck)
 lint:
     uv run ruff format --check
     uv run ruff check
+
+# Type checking
+typecheck:
     uv run pyright
 
-# Full CI suite: format-check + lint + typecheck + tests
-check:
-    uv run ruff format --check
-    uv run ruff check
-    uv run pyright
+# Run tests with coverage
+test:
     uv run pytest --cov --cov-report=term --cov-report=html
+
+# Static analysis: lint + typecheck, no tests
+static: lint typecheck
+
+# Full CI suite
+check: static test
 {%- else %}
 # Project-specific checks
 check:
