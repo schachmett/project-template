@@ -1,6 +1,7 @@
 _subdirectory: template
 _templates_suffix: .jinja
 _min_copier_version: "9.0"
+_answers_file: .copier-answers.yml
 
 _exclude:
   # Conditional docs
