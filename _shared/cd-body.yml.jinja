@@ -44,5 +44,10 @@ jobs:
 {%- if python != 'none' %}
           build-args: VERSION=${{ '{{' }} steps.meta.outputs.version {{ '}}' }}
 {%- endif %}
+{%- if gha_cache | default(false) %}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+{%- else %}
+          cache-from: type=registry,ref={{ registry }}/${{ '{{' }} github.repository {{ '}}' }}:buildcache
+          cache-to: type=registry,ref={{ registry }}/${{ '{{' }} github.repository {{ '}}' }}:buildcache,mode=max
+{%- endif %}

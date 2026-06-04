@@ -1,1 +1,1 @@
-{% set ci_needs_github_token = true %}{% include '_shared/ci-body.yml.jinja' %}
+{% set ci_needs_github_token = true %}{% set registry = forgejo_url | replace('https://', '') | replace('http://', '') %}{% include '_shared/ci-body.yml.jinja' %}
