@@ -12,11 +12,18 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: extractions/setup-just@v3
+{%- if ci_needs_github_token | default(false) %}
+        with:
+          github-token: ${{ '{{' }} secrets.GH_PAT {{ '}}' }}
+{%- endif %}
 {% if python != 'none' %}
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
           python-version: "{{ python_version }}"
+{%- if ci_needs_github_token | default(false) %}
+          github-token: ${{ '{{' }} secrets.GH_PAT {{ '}}' }}
+{%- endif %}
 
       - name: Install dependencies
         run: {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen

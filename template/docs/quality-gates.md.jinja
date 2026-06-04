@@ -1,6 +1,13 @@
 # Quality gates
 
 Run all checks before opening a PR. CI enforces the same commands.
+{% if platform in ('forgejo', 'both') %}
+## CI secrets (Forgejo)
+
+The Forgejo CI runner needs a `GH_PAT` repository secret — a GitHub personal access token (no scopes required) — so the `setup-just`{% if python != 'none' %} and `setup-uv`{% endif %} action{% if python != 'none' %}s{% endif %} can download {% if python != 'none' %}their tools{% else %}`just`{% endif %} from github.com. Add it under **Settings → Actions → Secrets**.
+{% if is_service %}
+CD logs in to the container registry with the built-in `GITHUB_TOKEN` and `packages: write` permission, so it needs no additional secret.
+{% endif %}{% endif %}
 {% if python != 'none' %}
 ## Commands
 
