@@ -3,12 +3,18 @@ FROM python:{{ python_version }}-slim
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /usr/local/bin/
 
 WORKDIR /app
-
+{% if python != 'none' %}
+# Passed by CD to embed the release version in package metadata. hatch-vcs reads
+# it via SETUPTOOLS_SCM_PRETEND_VERSION because .git is not in the build context;
+# defaults to 0.0.0 for local and CI builds.
+ARG VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=$VERSION
+{% endif %}
 # Install dependencies first (cached layer — only rebuilds when lock file changes)
 {% if python == 'component' %}
 COPY {{ component_dir }}/pyproject.toml {{ component_dir }}/uv.lock ./
 {% else %}
-COPY pyproject.toml uv.lock ./
+COPY pyproject.toml uv.lock README.md ./
 {% endif %}
 RUN uv sync --frozen --no-dev --no-install-project
 
