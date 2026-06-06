@@ -9,7 +9,7 @@ just check    # full suite with branch coverage
 just lint     # ruff + pyright only (no tests)
 ```
 
-To run tests alone without the full gate: `uv run pytest`{% if python == 'component' %} (from within `{{ component_dir }}/`){% endif %}.
+To run tests alone without the full gate: `just test`.
 
 ## Layout
 
