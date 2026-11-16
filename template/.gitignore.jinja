@@ -22,15 +22,15 @@ dist/
 htmlcov/
 .coverage*
 
-{% if secrets == 'env-only' %}
+{%- if secrets == 'env-only' %}
 
 # Secrets
 .env
 .env.local
 .env.*.local
-{% endif %}
-{% if is_service %}
+{%- endif %}
+{%- if is_service %}
 
 # Docker
 *.log
-{% endif %}
+{%- endif %}

@@ -32,8 +32,8 @@ Keep module tests free of I/O. If a test needs a file, socket, or database, it b
 
 ```python
 BOUNDARIES: list[tuple[str, str]] = [
-    ("db", "{{ package_name }}.cli"),   # db must not import from cli
-    ("db", "{{ package_name }}.api"),   # db must not import from api
+    ("db", "{{ package_name }}.cli"),  # db must not import from cli
+    ("db", "{{ package_name }}.api"),  # db must not import from api
 ]
 ```
 
@@ -53,4 +53,3 @@ Exclude deliberately unreachable branches with `# pragma: no cover`.
 ## Test ordering
 
 `pytest-randomly` randomises test execution order on every run. This catches hidden test interdependencies early. The seed is printed at the start of each run; use `--randomly-seed=<N>` to reproduce a specific order.
-

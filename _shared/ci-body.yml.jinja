@@ -31,7 +31,8 @@ jobs:
 
       - name: Check
         run: just check
-{% if is_service %}
+{%- if is_service %}
+
   docker-build:
     needs: quality
     runs-on: ubuntu-latest

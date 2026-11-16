@@ -18,11 +18,10 @@ def _imports_of(path: Path) -> set[str]:
     tree = ast.parse(path.read_text())
     result: set[str] = set()
     for node in ast.walk(tree):
-        match node:
-            case ast.Import():
-                result.update(alias.name for alias in node.names)
-            case ast.ImportFrom() if node.module:
-                result.add(node.module)
+        if isinstance(node, ast.Import):
+            result.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            result.add(node.module)
     return result
 
 
@@ -30,7 +29,7 @@ def _all_imports_in(directory: Path) -> set[str]:
     return {imp for path in directory.rglob("*.py") for imp in _imports_of(path)}
 
 
-@pytest.mark.parametrize("layer,forbidden_prefix", BOUNDARIES)
+@pytest.mark.parametrize(("layer", "forbidden_prefix"), BOUNDARIES)
 def test_layer_boundary(layer: str, forbidden_prefix: str) -> None:
     violations = {m for m in _all_imports_in(_SRC / layer) if m.startswith(forbidden_prefix)}
     assert not violations, f"{layer!r} imports {forbidden_prefix!r}: {violations}"
