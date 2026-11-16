@@ -33,18 +33,19 @@ The template is Python-only: every generated project has a Python package, eithe
 
 ```
 <project>/
-├── AGENTS.md                    # agent entry point → links to all docs
+├── AGENTS.md                    # agent entry point: rules, skills index, docs map
 ├── README.md
 ├── .gitignore
 ├── .env.example                 # (if secrets=env-only)
 ├── cliff.toml                   # git-cliff release notes config
 ├── Dockerfile                   # (if is_service)
+├── .agents/skills/              # procedures as SKILL.md files
+│   ├── plan-issue/ · implement-issue/ · review-pr/ · release/
+│   └── forge/                   # the only place raw gh/fj is allowed
 ├── docs/
-│   ├── agent-workflow.md        # branching, PR/issue CLI, releases, session flow
+│   ├── workflow.md              # gates and why, conventions, quality gates, definition of done
+│   ├── codestyle.md             # code and test conventions
 │   ├── architecture.md
-│   ├── codestyle.md
-│   ├── quality-gates.md         # just targets and CI mapping
-│   ├── testing.md
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
@@ -90,6 +91,8 @@ copier update
 ```
 
 Copier does a 3-way merge (old template rendering + your local changes + new template rendering) and writes conflict markers where both sides changed. Resolve conflicts, then commit.
+
+Template versions before the skills change had `docs/agent-workflow.md`, `docs/quality-gates.md` and `docs/testing.md`. They are replaced by `docs/workflow.md`, the testing section of `docs/codestyle.md` and the skills under `.agents/skills/`. **`copier update` deletes the three old files even if you edited them, without a conflict.** The deletion is uncommitted, so before committing the update check `git diff -- docs/agent-workflow.md docs/quality-gates.md docs/testing.md` and move your own additions into the new files.
 
 All template files render directly to their final paths — no post-copy tasks. The 3-way merge works correctly across the entire project including `pyproject.toml`.
 

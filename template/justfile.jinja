@@ -117,6 +117,25 @@ pr TITLE FILE:
     fj -H "$(just _forge-host)" pr create "$1" --base main --body-file "$2"
 {%- endif %}
 
+# Show PR N: title, body, comments, mergeability and CI status
+pr-view N:
+{%- if platform == 'github' %}
+    gh pr view "$1" --comments
+    -gh pr checks "$1"
+{%- else %}
+    fj -H "$(just _forge-host)" pr view "$1"
+    fj -H "$(just _forge-host)" pr view "$1" comments
+    fj -H "$(just _forge-host)" pr status "$1"
+{%- endif %}
+
+# Replace the body of PR N with the content of FILE
+pr-body N FILE:
+{%- if platform == 'github' %}
+    gh pr edit "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr edit "$1" body "$(cat "$2")"
+{%- endif %}
+
 # Show the diff of PR N
 pr-diff N:
 {%- if platform == 'github' %}

@@ -40,7 +40,8 @@ check() { # check DEST PLATFORM
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 
     for recipe in "issues" "issues some query" "issue 1" "issue-new Title body.md" \
-        "comment 1 body.md" "prs" "pr Title body.md" "pr-diff 1" \
+        "comment 1 body.md" "prs" "pr Title body.md" "pr-view 1" "pr-body 1 body.md" \
+        "pr-diff 1" \
         "comment-pr 1 body.md" "releases" "release v1.2.3"; do
         # shellcheck disable=SC2086
         (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
@@ -51,11 +52,8 @@ check() { # check DEST PLATFORM
 
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
 
-    # No raw forge CLI commands in the docs — everything goes through just.
-    if grep -rnE '(^|[`[:space:]])(gh|fj) (issue|pr|release|repo)\b' \
-        "$dest/AGENTS.md" "$dest/README.md" "$dest/docs"; then
-        fail "raw gh/fj command in rendered docs"
-    fi
+    # Skills, markdown links, removed docs, raw gh/fj outside the forge skill.
+    python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
 
     # Every rendered file ends with exactly one newline and has no trailing
     # whitespace, as the end-of-file-fixer and trailing-whitespace hooks demand.

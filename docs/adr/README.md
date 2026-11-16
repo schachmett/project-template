@@ -44,3 +44,5 @@ What becomes easier or harder as a result?
 - [004: The template is Python-only](004-python-only.md)
 - [005: detect-secrets runs without a baseline file](005-detect-secrets-without-baseline.md)
 - [006: No docker-compose file in generated projects](006-no-docker-compose.md)
+- [007: Procedures are skills, docs explain why](007-procedures-are-skills.md)
+- [008: Plan and handoff live in the issue and the PR](008-state-lives-in-issue-and-pr.md)

@@ -8,6 +8,7 @@ Agent entry point for the template repo itself. `template/AGENTS.md.jinja` is th
 - Post the plan as an issue comment and wait for the human's go before editing. Open the PR and stop; the human merges.
 - Run `just test-render` before opening a PR.
 - Check `fj <cmd> --help` before using an fj subcommand you have not verified; do not guess flags.
+- This repo has two remotes: pass the host to fj (`fj -H git.pw13.eu …`), or it cannot resolve the repo on a branch without upstream.
 
 ## Documentation map
 

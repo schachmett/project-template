@@ -1,0 +1,92 @@
+---
+name: forge
+description: Forge operations that have no just recipe — labels, milestones, issue dependencies, closing issues. The only place where calling {% if platform == 'github' %}gh{% else %}fj{% endif %} directly is allowed. Use when a task needs one of these.
+---
+
+# Forge special cases
+
+Everything with a recipe goes through `just` (`just --list`). This skill covers the rest.
+
+**Rule: do not guess flags.** Before using a subcommand that is not written out below, run `{% if platform == 'github' %}gh{% else %}fj{% endif %} <command> --help` once and use what it says.
+{%- if platform == 'github' %}
+
+The commands below were checked against `gh --help` (2.46.0), not run against GitHub.
+
+## Labels
+
+```bash
+gh label list
+gh label create "area/api" --color 1d76db --description "API surface"
+gh issue edit 12 --add-label "bug,area/api" --remove-label "triage"
+gh pr edit 34 --add-label "bug"
+```
+
+## Milestones
+
+`gh` has no milestone command; list and create go through the API.
+
+```bash
+gh api "repos/{owner}/{repo}/milestones"
+gh api "repos/{owner}/{repo}/milestones" -f title="v1.0" -f description="First stable release"
+gh issue edit 12 --milestone "v1.0"
+gh pr edit 34 --milestone "v1.0"
+```
+
+## Dependencies
+
+There is no CLI support. State the dependency in the issue body (`Blocked by #12`) so it is visible and linked.
+
+## Closing an issue
+
+Issues close when a PR with `Closes #N` is merged. To close one without a PR:
+
+```bash
+gh issue close 12 --comment "Superseded by #15"
+```
+{%- else %}
+
+Tested with forgejo-cli (`fj`) 0.7.0. Check `fj version`; with a different version, verify with `--help` first.
+
+**Always pass the host:** `fj -H "$(just _forge-host)" …`. Without it fj cannot tell which repository is meant when there are several remotes or the branch has no upstream.
+
+## Labels
+
+```bash
+fj -H "$(just _forge-host)" repo labels view
+fj -H "$(just _forge-host)" repo labels create "area/api" 1d76db --description "API surface"
+fj -H "$(just _forge-host)" issue edit 12 labels --add bug --add area/api --rm triage
+fj -H "$(just _forge-host)" pr edit 34 labels --add bug
+```
+
+## Milestones
+
+```bash
+fj -H "$(just _forge-host)" milestone search
+fj -H "$(just _forge-host)" milestone create "v1.0" --state open --description "First stable release"
+fj -H "$(just _forge-host)" issue edit 12 milestone "v1.0"
+fj -H "$(just _forge-host)" pr edit 34 milestone "v1.0"
+fj -H "$(just _forge-host)" issue edit 12 milestone --unset
+```
+
+## Dependencies
+
+```bash
+fj -H "$(just _forge-host)" issue depend add 15 12     # 15 depends on 12
+fj -H "$(just _forge-host)" issue depend list 15
+fj -H "$(just _forge-host)" issue depend remove 15 12
+```
+
+`depend remove` in fj 0.7.0 prints `Error: unexpected status code 201 Created` and exits non-zero although the dependency is removed. Confirm with `depend list` instead of retrying.
+
+## Closing an issue
+
+Issues close when a PR with `Closes #N` is merged. To close one without a PR:
+
+```bash
+fj -H "$(just _forge-host)" issue close 12 --with-msg "Superseded by #15"
+```
+{%- endif %}
+
+## Not here on purpose
+
+Merging, approving, deleting branches or releases, and changing repository settings are the human's.
