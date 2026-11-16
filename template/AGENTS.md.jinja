@@ -25,9 +25,7 @@ Open the PR and stop. Do not merge. The human reviews the diff, requests changes
 - [docs/architecture.md](docs/architecture.md) — system design and component boundaries
 - [docs/codestyle.md](docs/codestyle.md) — code conventions and docstring guidance
 - [docs/quality-gates.md](docs/quality-gates.md) — commands to run before opening a PR
-{%- if python != 'none' %}
 - [docs/testing.md](docs/testing.md) — testing guidelines and dependency-direction tests
-{%- endif %}
 {%- if is_service %}
 - [docs/operations.md](docs/operations.md) — deployment, infrastructure, environment config, and runbooks
 {%- endif %}
@@ -35,7 +33,7 @@ Open the PR and stop. Do not merge. The human reviews the diff, requests changes
 - [docs/domain/](docs/domain/) — domain-specific documentation
 
 ## Standard tooling
-{% if python != 'none' %}
+
 Use `just` for all routine tasks — it is the canonical entry point:
 
 | Recipe | What it does |
@@ -46,9 +44,7 @@ Use `just` for all routine tasks — it is the canonical entry point:
 | `just test` | pytest with coverage |
 | `just static` | lint + typecheck (no tests) |
 | `just check` | full suite — same as CI |
-{% else %}
-Use `just check` to run all project checks (same as CI).
-{% endif %}
+
 Issues, PRs and releases also go through `just`. Bodies are always passed as a file (write it under `.ai/` first):
 
 | Recipe | What it does |
@@ -64,7 +60,7 @@ Issues, PRs and releases also go through `just`. Bodies are always passed as a f
 | `just releases` | list releases |
 | `just release VERSION` | tag main and publish a release with generated notes |
 
-Never call {% if python != 'none' %}`uv run ruff`, `pyright`, `pytest` or {% endif %}`{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly — always go through `just`.
+Never call `uv run ruff`, `pyright`, `pytest` or `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly — always go through `just`.
 
 ## Working memory
 

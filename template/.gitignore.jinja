@@ -7,7 +7,7 @@
 .vscode/
 *.swp
 *~
-{% if python != 'none' %}
+
 
 # Python
 __pycache__/
@@ -21,16 +21,16 @@ dist/
 .pyright/
 htmlcov/
 .coverage*
-{% endif %}
-{% if secrets == 'env-only' %}
+
+{%- if secrets == 'env-only' %}
 
 # Secrets
 .env
 .env.local
 .env.*.local
-{% endif %}
-{% if is_service %}
+{%- endif %}
+{%- if is_service %}
 
 # Docker
 *.log
-{% endif %}
+{%- endif %}

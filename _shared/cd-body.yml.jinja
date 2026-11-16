@@ -41,9 +41,7 @@ jobs:
           push: true
           tags: ${{ '{{' }} steps.meta.outputs.tags {{ '}}' }}
           labels: ${{ '{{' }} steps.meta.outputs.labels {{ '}}' }}
-{%- if python != 'none' %}
           build-args: VERSION=${{ '{{' }} steps.meta.outputs.version {{ '}}' }}
-{%- endif %}
 {%- if gha_cache | default(false) %}
           cache-from: type=gha
           cache-to: type=gha,mode=max

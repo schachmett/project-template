@@ -16,7 +16,7 @@ jobs:
         with:
           github-token: ${{ '{{' }} secrets.GH_PAT {{ '}}' }}
 {%- endif %}
-{% if python != 'none' %}
+
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
@@ -28,14 +28,11 @@ jobs:
       - name: Install dependencies
         run: {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen
 
-{% elif hooks != 'none' %}
-      - name: Install pre-commit
-        run: pip install pre-commit
 
-{% endif %}
       - name: Check
         run: just check
-{% if is_service %}
+{%- if is_service %}
+
   docker-build:
     needs: quality
     runs-on: ubuntu-latest

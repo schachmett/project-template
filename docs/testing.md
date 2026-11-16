@@ -15,6 +15,13 @@ Renders every platform × python × is_service combination with `uvx copier` and
 - the justfile calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
 - no raw `gh`/`fj` command is left in `AGENTS.md`, `README.md` or `docs/`
+- every file ends with exactly one newline and has no trailing whitespace
+- `.pre-commit-config.yaml` loads (`pre-commit validate-config`)
+- detect-secrets 1.5.0 reports nothing in the fresh project, apart from the excluded answers file (see [ADR 005](adr/005-detect-secrets-without-baseline.md))
+
+The projects are rendered with `secrets=env-only`, so `.env.example` is part of what is checked.
+
+Then, for one root and one component project with `hooks=python` and `is_service=true`, it checks that a fresh project passes its own gates: `uv sync`, `just check` (ruff, pyright, pytest with the coverage gate) and `pre-commit run --all-files` on a feature branch. This needs network access to PyPI and to github.com (pre-commit hook repos), and it is what catches drift when a new ruff or pyright release starts rejecting the generated code.
 
 It also appends a stale answer to a rendered project's `.copier-answers.yml` and runs `copier update`, to make sure projects generated before a question was removed still update.
 
@@ -44,6 +51,7 @@ Things that look like failures but are not:
 | forgejo-cli (`fj`) | 0.7.0 | every recipe run against a scratch repo; flags identical in 0.6.0 |
 | GitHub CLI (`gh`) | 2.46.0 | `--dry-run` and `--help` only — not run against GitHub |
 | just | 1.40.0 | |
+| detect-secrets | 1.5.0 | hook run over every rendered project; pinned in the generated pre-commit config |
 | git-cliff | from the generated project's dev dependencies | release notes for root and component layout |
 
 Update this table when a recipe is re-tested with a newer version.

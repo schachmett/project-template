@@ -29,7 +29,7 @@ render() { # render DEST PLATFORM PYTHON IS_SERVICE
     "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
-        -d platform="$2" -d python="$3" -d is_service="$4" \
+        -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
@@ -56,10 +56,28 @@ check() { # check DEST PLATFORM
         "$dest/AGENTS.md" "$dest/README.md" "$dest/docs"; then
         fail "raw gh/fj command in rendered docs"
     fi
+
+    # Every rendered file ends with exactly one newline and has no trailing
+    # whitespace, as the end-of-file-fixer and trailing-whitespace hooks demand.
+    while IFS= read -r -d '' file; do
+        [ -s "$file" ] || continue
+        if [ -n "$(tail -c 1 "$file")" ] || [ -z "$(tail -c 2 "$file" | head -c 1 | tr -d '\n')" ] && [ "$(wc -c <"$file")" -gt 1 ]; then
+            fail "bad end of file: ${file#"$dest"/}"
+        fi
+        if grep -qE '[[:blank:]]+$' "$file"; then fail "trailing whitespace: ${file#"$dest"/}"; fi
+    done < <(find "$dest" -type f -not -name '*.typed' -print0)
+
+    # The pre-commit config must load, and a fresh project must not trip
+    # detect-secrets (pre-commit itself excludes the answers file).
+    (cd "$dest" && uvx pre-commit validate-config .pre-commit-config.yaml >/dev/null) ||
+        fail "invalid .pre-commit-config.yaml"
+    (cd "$dest" && find . -type f -not -name .copier-answers.yml -print0 |
+        xargs -0 uvx --from detect-secrets==1.5.0 detect-secrets-hook) ||
+        fail "detect-secrets reports findings in a fresh project"
 }
 
 for platform in forgejo github both; do
-    for python in none root component; do
+    for python in root component; do
         for is_service in false true; do
             name="$platform-$python-service_$is_service"
             echo "== $name"
@@ -70,6 +88,28 @@ for platform in forgejo github both; do
             fi
         done
     done
+done
+
+# A fresh project must pass its own gates: `just check` and every pre-commit hook.
+for python in root component; do
+    echo "== fresh project passes its gates ($python)"
+    dest="$work/gates-$python"
+    if "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
+        -d project_name=demo-project -d org=acme -d forgejo_url=https://forge.example.com \
+        -d platform=forgejo -d python="$python" -d hooks=python -d is_service=true \
+        -d secrets=env-only "$src" "$dest" 2>"$work/copier.log"; then
+        git -C "$dest" init --quiet --initial-branch feat/fresh
+        if [ "$python" = component ]; then pydir="$dest/backend"; else pydir="$dest"; fi
+        (cd "$pydir" && uv sync --quiet) || fail "uv sync"
+        git -C "$dest" add -A
+        (cd "$dest" && just check >"$work/check.log" 2>&1) ||
+            { tail -n 40 "$work/check.log" >&2; fail "just check ($python)"; }
+        (cd "$dest" && uvx pre-commit run --all-files >"$work/hooks.log" 2>&1) ||
+            { tail -n 40 "$work/hooks.log" >&2; fail "pre-commit run --all-files ($python)"; }
+    else
+        cat "$work/copier.log" >&2
+        fail "copier copy"
+    fi
 done
 
 # A project generated when the template still had `workflow_style` must update cleanly.
