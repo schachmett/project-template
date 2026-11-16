@@ -19,14 +19,14 @@
 ```
 
 ## Components
-{% if python != 'none' %}
+
 
 ### `{{ package_name }}`
 
 Python package at `{% if python == 'component' %}{{ component_dir }}/{% endif %}src/{{ package_name }}/`.
 
 <!-- Describe what this package is responsible for. -->
-{% endif %}
+
 {% if is_service %}
 
 ### API

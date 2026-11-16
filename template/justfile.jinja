@@ -23,7 +23,7 @@ static: lint typecheck
 
 # Full CI suite
 check: static test
-{%- elif python == 'root' %}
+{%- else %}
 # Auto-format and fix imports
 fix:
     uv run ruff format
@@ -47,20 +47,6 @@ static: lint typecheck
 
 # Full CI suite
 check: static test
-{%- else %}
-# Project-specific checks
-check:
-{%- if hooks != 'none' %}
-    pre-commit run --all-files
-{%- else %}
-    @echo "No checks configured — add project-specific recipes here"
-{%- endif %}
-{%- endif %}
-{%- if is_service %}
-
-# Start the local docker compose stack
-up:
-    docker compose up
 {%- endif %}
 
 # ── Forge ─────────────────────────────────────────────────────────────────────
@@ -181,10 +167,8 @@ release VERSION:
     trap 'rm -f "$notes"' EXIT
 {%- if python == 'component' %}
     uv run --project {{ component_dir }} git-cliff --unreleased --tag "$version" --strip header > "$notes"
-{%- elif python == 'root' %}
-    uv run git-cliff --unreleased --tag "$version" --strip header > "$notes"
 {%- else %}
-    echo "Release $version" > "$notes"
+    uv run git-cliff --unreleased --tag "$version" --strip header > "$notes"
 {%- endif %}
 {%- if platform == 'github' %}
     gh release create "$version" --title "$version" --target main --notes-file "$notes"

@@ -29,7 +29,7 @@ render() { # render DEST PLATFORM PYTHON IS_SERVICE
     "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
-        -d platform="$2" -d python="$3" -d is_service="$4" \
+        -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
@@ -56,10 +56,18 @@ check() { # check DEST PLATFORM
         "$dest/AGENTS.md" "$dest/README.md" "$dest/docs"; then
         fail "raw gh/fj command in rendered docs"
     fi
+
+    # The pre-commit config must load, and a fresh project must not trip
+    # detect-secrets (pre-commit itself excludes the answers file).
+    (cd "$dest" && uvx pre-commit validate-config .pre-commit-config.yaml >/dev/null) ||
+        fail "invalid .pre-commit-config.yaml"
+    (cd "$dest" && find . -type f -not -name .copier-answers.yml -print0 |
+        xargs -0 uvx --from detect-secrets==1.5.0 detect-secrets-hook) ||
+        fail "detect-secrets reports findings in a fresh project"
 }
 
 for platform in forgejo github both; do
-    for python in none root component; do
+    for python in root component; do
         for is_service in false true; do
             name="$platform-$python-service_$is_service"
             echo "== $name"

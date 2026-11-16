@@ -1,4 +1,3 @@
-{%- if python != 'none' -%}
 {%- set src_root = component_dir ~ '/src' if python == 'component' else 'src' -%}
 # Testing
 
@@ -54,8 +53,4 @@ Exclude deliberately unreachable branches with `# pragma: no cover`.
 ## Test ordering
 
 `pytest-randomly` randomises test execution order on every run. This catches hidden test interdependencies early. The seed is printed at the start of each run; use `--randomly-seed=<N>` to reproduce a specific order.
-{% else %}
-# Testing
 
-<!-- TODO: add project-specific testing guidelines -->
-{% endif %}

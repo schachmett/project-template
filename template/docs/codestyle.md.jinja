@@ -1,5 +1,5 @@
 # Code style
-{% if python != 'none' %}
+
 ## Python
 
 Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}`.
@@ -49,7 +49,7 @@ def retry(fn: Callable, attempts: int) -> None:
 
 - Catch specific exceptions. Never `except Exception` without re-raising or logging with traceback.
 - Use custom exception classes that inherit from a project base exception for domain errors.
-{% endif %}
+
 
 ## General
 

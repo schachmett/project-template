@@ -12,13 +12,18 @@ repos:
     rev: v1.5.0
     hooks:
       - id: detect-secrets
-        args: ["--baseline", ".secrets.baseline"]
+        # .copier-answers.yml holds the template answer `secrets: <choice>`, which the
+        # keyword detector reports as a secret.
+        exclude: ^\.copier-answers\.yml$
 
   - repo: local
     hooks:
       - id: no-commit-to-main
         name: Prevent direct commits to main
-        entry: bash -c 'b=$(git branch --show-current 2>/dev/null); if [ "$b" = "main" ] || [ "$b" = "master" ]; then echo "ERROR: on $b — create a feature branch first"; exit 1; fi'
+        entry: >-
+          bash -c 'b=$(git branch --show-current 2>/dev/null);
+          if [ "$b" = "main" ] || [ "$b" = "master" ]; then
+          echo "ERROR - on $b, create a feature branch first"; exit 1; fi'
         language: system
         pass_filenames: false
         always_run: true

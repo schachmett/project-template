@@ -1,6 +1,6 @@
 # project-template
 
-[Copier](https://copier.readthedocs.io/) template for new projects. Generates agent workflow docs, CI/CD pipelines, and an optional Python project skeleton.
+[Copier](https://copier.readthedocs.io/) template for new projects. Generates agent workflow docs, CI/CD pipelines, and a Python project skeleton.
 
 ## Quick start
 
@@ -19,15 +19,15 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `platform` | choice | `forgejo` | `forgejo` / `github` / `both` |
 | `forgejo_url` | str | — | Asked when platform ≠ github |
 | `org` | str | — | GitHub/Forgejo org or username |
-| `python` | choice | `none` | `root` / `component` / `none` |
+| `python` | choice | `root` | `root` / `component` |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
-| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `docker-compose.yml`, `cd.yml` |
+| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml` |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
 | `component_dir` | str | `backend` | Asked when python=component |
 
-`hooks=python` requires `python ≠ none`.
+The template is Python-only: every generated project has a Python package, either at the repo root or in a component directory ([ADR 004](docs/adr/004-python-only.md)).
 
 ## Generated output
 
@@ -37,19 +37,18 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 ├── README.md
 ├── .gitignore
 ├── .env.example                 # (if secrets=env-only)
-├── cliff.toml                   # (if python ≠ none) git-cliff release notes config
+├── cliff.toml                   # git-cliff release notes config
 ├── Dockerfile                   # (if is_service)
-├── docker-compose.yml           # (if is_service)
 ├── docs/
 │   ├── agent-workflow.md        # branching, PR/issue CLI, releases, session flow
 │   ├── architecture.md
 │   ├── codestyle.md
 │   ├── quality-gates.md         # just targets and CI mapping
-│   ├── testing.md               # (if python ≠ none)
+│   ├── testing.md
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
-├── justfile                     # quality recipes, forge recipes (issues, PRs, releases), (up if is_service)
+├── justfile                     # quality recipes, forge recipes (issues, PRs, releases)
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml

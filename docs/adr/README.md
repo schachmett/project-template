@@ -41,3 +41,6 @@ What becomes easier or harder as a result?
 - [001: `just` is the only interface to the forge](001-just-is-the-forge-interface.md)
 - [002: Release notes live on the forge, not in a changelog file](002-release-notes-on-the-forge.md)
 - [003: Issues and PRs are the only workflow](003-issues-and-prs-only.md)
+- [004: The template is Python-only](004-python-only.md)
+- [005: detect-secrets runs without a baseline file](005-detect-secrets-without-baseline.md)
+- [006: No docker-compose file in generated projects](006-no-docker-compose.md)

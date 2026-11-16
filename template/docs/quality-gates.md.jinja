@@ -4,11 +4,11 @@ Run all checks before opening a PR. CI enforces the same commands.
 {% if platform in ('forgejo', 'both') %}
 ## CI secrets (Forgejo)
 
-The Forgejo CI runner needs a `GH_PAT` repository secret — a GitHub personal access token (no scopes required) — so the `setup-just`{% if python != 'none' %} and `setup-uv`{% endif %} action{% if python != 'none' %}s{% endif %} can download {% if python != 'none' %}their tools{% else %}`just`{% endif %} from github.com. Add it under **Settings → Actions → Secrets**.
+The Forgejo CI runner needs a `GH_PAT` Actions secret — a GitHub personal access token that can read public repositories (no scopes required) — so the `setup-just` and `setup-uv` actions can download their tools from github.com. A user- or organisation-level secret covers every repository of that owner; otherwise add it to this repository under **Settings → Actions → Secrets**.
 {% if is_service %}
 CD logs in to the container registry with the built-in `GITHUB_TOKEN` and `packages: write` permission, so it needs no additional secret.
 {% endif %}{% endif %}
-{% if python != 'none' %}
+
 ## Commands
 
 ```bash
@@ -40,22 +40,7 @@ CI runs `just check` on every push and pull request.
 3. **Typecheck** — pyright strict; no implicit `Any`, all public functions annotated
 4. **Tests** — pytest with branch coverage; fails if coverage drops below 80%
 
-{% else %}
-## Commands
 
-```bash
-just check    # project-specific checks
-```
-
-<!-- TODO: add project-specific quality gate commands and their CI equivalents -->
-
-## CI mapping
-
-| Command | CI step |
-|---|---|
-| `just check` | `quality` job |
-
-{% endif %}
 ## Pre-commit hooks
 {% if hooks == 'none' %}
 No pre-commit hooks are configured for this project.
@@ -81,13 +66,22 @@ Active hooks:
 | `check-yaml` | Valid YAML syntax |
 | `check-added-large-files` | No accidental large file commits |
 | `detect-secrets` | No secrets or credentials committed |
-
 | `no-commit-to-main` | Blocks commits directly on main/master |
 {%- if hooks == 'python' %}
 | `ruff` | Python lint (with auto-fix) |
 | `ruff-format` | Python formatting |
 | `pyright` | Python type checking |
 {%- endif %}
+
+### Secret detection
+
+`detect-secrets` runs without a baseline file: every finding blocks the commit. Mark a false positive on its line:
+
+```python
+EXAMPLE_KEY = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+```
+
+If a project accumulates false positives that cannot be annotated inline (generated files, fixtures full of fake keys), switch to a baseline: run `detect-secrets scan > .secrets.baseline`, commit the file, and add `args: ["--baseline", ".secrets.baseline"]` to the hook in `.pre-commit-config.yaml`.
 {% endif %}
 
 ## Definition of done

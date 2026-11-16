@@ -103,6 +103,6 @@ Releases are cut from `main` with one command:
 just release v1.2.3
 ```
 
-The recipe refuses to run unless you are on a clean `main` that matches `origin/main`. It {% if python != 'none' %}generates the release notes from the conventional commits since the last tag (git-cliff, configured in `cliff.toml`){% else %}writes a one-line release note{% endif %}, then creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The new tag triggers the CD workflow{% if is_service %} (builds and pushes the Docker image){% endif %}.
+The recipe refuses to run unless you are on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `cliff.toml`), then creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The new tag triggers the CD workflow{% if is_service %} (builds and pushes the Docker image){% endif %}.
 
 There is no `CHANGELOG.md` in the repository: the release pages are the changelog (`just releases`), so a release needs no commit and no PR. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.
