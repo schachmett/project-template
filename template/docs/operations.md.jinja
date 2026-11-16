@@ -18,10 +18,10 @@
 Create a release with:
 
 ```bash
-{% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "..."
+just release v1.2.3
 ```
 
-This pushes the tag and creates the release page. The CD pipeline then:
+This creates the tag and the release page with generated notes (see [agent-workflow.md](agent-workflow.md#releases)). The CD pipeline then:
 
 1. Builds the Docker image
 2. Pushes to the registry
@@ -85,7 +85,7 @@ Copy `.env.example` to `.env` and fill in values. Production values are injected
 
 1. Identify the last known good tag:
    ```bash
-   {% if platform in ('forgejo', 'both') %}fj{% else %}gh{% endif %} release list
+   just releases
    ```
 2. Pull and deploy the previous image:
    ```bash

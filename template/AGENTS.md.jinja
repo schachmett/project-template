@@ -1,7 +1,7 @@
 # {{ project_name }}
 
 Agent entry point. Read this first, then the docs relevant to your task before writing any code.
-{% if workflow_style == 'issues-prs' %}
+
 ## Mandatory stops
 
 There are two points in every task where you **must stop and wait for explicit human approval** before continuing. These stops are non-negotiable. They also give the human the opportunity to switch models between planning, implementation, and review.
@@ -18,11 +18,6 @@ There is no other valid path forward. Do not interpret silence, agreement with y
 **Stop 2 — after opening a PR: human reviews and merges**
 
 Open the PR and stop. Do not merge. The human reviews the diff, requests changes if needed, and merges when satisfied.
-{% else %}
-## Mandatory stop
-
-Stage your changes and propose a commit message. Do not commit. Wait for the human to review the staged diff and commit.
-{% endif %}
 
 ## Documentation map
 
@@ -54,7 +49,22 @@ Use `just` for all routine tasks — it is the canonical entry point:
 {% else %}
 Use `just check` to run all project checks (same as CI).
 {% endif %}
-Never call `uv run ruff`, `pyright`, or `pytest` directly — always go through `just`.
+Issues, PRs and releases also go through `just`. Bodies are always passed as a file (write it under `.ai/` first):
+
+| Recipe | What it does |
+|---|---|
+| `just issues [QUERY]` | list open issues, optionally filtered |
+| `just issue N` | show issue N with its comments |
+| `just issue-new TITLE FILE` | open an issue, body from FILE |
+| `just comment N FILE` | comment on issue N |
+| `just prs` | list open PRs |
+| `just pr TITLE FILE` | push the current branch and open a PR against main |
+| `just pr-diff N` | show the diff of PR N |
+| `just comment-pr N FILE` | comment on PR N |
+| `just releases` | list releases |
+| `just release VERSION` | tag main and publish a release with generated notes |
+
+Never call {% if python != 'none' %}`uv run ruff`, `pyright`, `pytest` or {% endif %}`{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly — always go through `just`.
 
 ## Working memory
 

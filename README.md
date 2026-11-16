@@ -26,7 +26,6 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
 | `component_dir` | str | `backend` | Asked when python=component |
-| `workflow_style` | choice | `issues-prs` | `issues-prs` / `direct` |
 
 `hooks=python` requires `python ≠ none`.
 
@@ -38,7 +37,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 ├── README.md
 ├── .gitignore
 ├── .env.example                 # (if secrets=env-only)
-├── cliff.toml                   # (if python ≠ none) git-cliff changelog config
+├── cliff.toml                   # (if python ≠ none) git-cliff release notes config
 ├── Dockerfile                   # (if is_service)
 ├── docker-compose.yml           # (if is_service)
 ├── docs/
@@ -50,7 +49,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
-├── justfile                     # fix, lint, check, (up if is_service)
+├── justfile                     # quality recipes, forge recipes (issues, PRs, releases), (up if is_service)
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml
@@ -128,3 +127,11 @@ The first import is manual — no `.copier-answers.yml` means no merge baseline.
 | `pyproject.toml` | Restore yours, cherry-pick `[tool.*]` sections |
 | `src/`, `tests/` | Always restore yours |
 | `README.md` | Restore yours, manually add `just` commands table |
+
+## Testing the template
+
+```bash
+just test-render
+```
+
+Renders every platform × python × is_service combination with `uvx copier`, then checks that each rendered justfile parses, that every forge recipe resolves (`just --dry-run`), that no raw `gh`/`fj` command is left in the rendered docs, and that a project whose answers file still carries a removed question updates cleanly.
