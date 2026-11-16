@@ -19,68 +19,39 @@ Use [AGENTS.md](../AGENTS.md) as the map of what already exists before creating 
 ### Working memory
 
 `.ai/` is gitignored. Use it for session handoffs, scratch notes, ad-hoc scripts, and intermediate outputs. Anything worth preserving beyond the session belongs in an issue comment or in `docs/`.
-{%- if workflow_style == 'issues-prs' %}
 
 ### Issues and PRs
-{%- if platform == 'github' %}
 
-Issues and PRs on GitHub are the authoritative record of all planned and completed work.
-
-**Issues** capture problems, goals, and planning. Run `gh issue list` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
-
-**PRs** carry the implementation. Always reference the issue: `Fixes #N` or `Part of #N`. PR body explains what changed, why, and how to verify. **PRs are reviewed and merged by the human — do not auto-merge.**
-
-```bash
-gh issue list
-gh issue create --title "..." --body "..."
-gh pr create --title "..." --body "..." --base main
-gh pr list
-gh release create v1.2.3 --title "v1.2.3" --notes "..."
-```
-{%- else %}
-
-Issues and PRs on Forgejo are the authoritative record of all planned and completed work.
+Issues and PRs on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %} are the authoritative record of all planned and completed work.
 {%- if platform == 'both' %}
 GitHub is a convenience mirror — code is readable there, but all workflow (issues, PRs, releases) happens on Forgejo.
 {%- endif %}
 
-**Issues** capture problems, goals, and planning. Run `fj issue list` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
+**Issues** capture problems, goals, and planning. Run `just issues` at the start of a session to orient on open work. When you discover a bug, open an issue before or alongside the fix — do not silently fix things with no record.
 
 **PRs** carry the implementation. Always reference the issue: `Fixes #N` or `Part of #N`. PR body explains what changed, why, and how to verify. **PRs are reviewed and merged by the human — do not auto-merge.**
 
+All forge operations go through `just`; do not call `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly. Titles are arguments, bodies are always files — write the body to `.ai/` first:
+
 ```bash
-fj issue list
-fj issue create --title "..." --body "..."
-fj pr create --title "..." --body "..." --base main
-fj pr list
-fj release create v1.2.3 --title "v1.2.3" --notes "..."
+just issues                            # open issues; `just issues "query"` to search
+just issue 12                          # issue with its comments
+just issue-new "Title" .ai/issue.md    # open an issue
+just comment 12 .ai/plan.md            # comment on an issue
+just prs                               # open PRs
+just pr "feat: title" .ai/pr.md        # push the current branch, open a PR against main
+just pr-diff 34                        # diff of a PR
+just comment-pr 34 .ai/note.md         # comment on a PR
+just releases                          # published releases
+just release v1.2.3                    # see Releases below
 ```
-{%- endif %}
 
 **Issue title conventions:**
 - Plain English, problem-focused. Describes what is wrong or needed, not what will be done.
 - No type prefix (`fix:`, `docs:` etc. belong on commits, not issue titles).
 - Do not preempt the solution in the title.
-{%- else %}
-
-### Commits
-
-This project uses direct commits — no issue tracker, no PRs. The agent's role is to implement and stage; the human reviews and commits.
-
-**Agent responsibilities:**
-- Implement the requested change.
-- Stage the relevant files: `git add <files>` (never `git add -A` or `git add .`).
-- Propose a commit message in conventional commit format and pause.
-- Do **not** commit, push, or open PRs.
-
-**Human responsibilities:**
-- Review staged changes (`git diff --cached`).
-- Commit if satisfied: `git commit -m "..."`.
-- Push when ready: `git push`.
-{%- endif %}
 
 ## Branching
-{%- if workflow_style == 'issues-prs' %}
 
 ```
 <type>/<short-description>
@@ -89,10 +60,6 @@ This project uses direct commits — no issue tracker, no PRs. The agent's role 
 Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`
 
 Always branch from `main`. Never commit directly to `main` — a pre-commit hook will block it. If you are on `main` when about to start work, stop and create a branch first.
-{%- else %}
-
-Commit directly to `main` for routine work. Create a branch only when a change is large enough to warrant a staged review before merging.
-{%- endif %}
 
 ## Drift policy
 
@@ -101,67 +68,41 @@ If a change affects durable behaviour, update the relevant doc in the same chang
 When a session produces a durable finding, route it to the right existing file without creating a new one. Create a new `docs/domain/` file only when a genuinely new subject area has no home. Write an ADR (in `docs/adr/`) whenever a non-obvious architectural decision is made.
 
 ## Session flow
-{%- if workflow_style == 'issues-prs' %}
 
 The two mandatory stops from `AGENTS.md` are embedded here as explicit gates:
 
 1. Read `AGENTS.md`.
 2. Check `.ai/` for session notes or handoff context from the previous session.
-3. Find or create the relevant issue: `{% if platform == 'github' %}gh{% else %}fj{% endif %} issue list`. **Do not proceed without an issue.**
+3. Find or create the relevant issue: `just issues`, then `just issue N`. **Do not proceed without an issue.**
 4. Read only the durable docs relevant to the task.
 5. Discuss the approach with the human until agreed.
 6. Write an implementation plan (what changes, in which files, why, how to verify).
 7. **→ STOP (plan gate).** Present the plan and wait. The human will respond with one of:
-   - *"Post the plan to the issue"* → post as a comment on the issue, then stop. Wait for *"go implement"* before touching any file.
+   - *"Post the plan to the issue"* → post as a comment on the issue (`just comment N FILE`), then stop. Wait for *"go implement"* before touching any file.
    - *"Skip the plan, start implementing"* → proceed to step 8.
    Do not interpret anything else as permission to start coding.
 8. Branch from main: `git checkout main && git pull && git checkout -b <type>/<slug>`
 9. Implement the change. Keep it to the agreed scope — do not fix unrelated things.
 10. Run `just check`. Fix any failures before proceeding.
 11. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
-12. Open a PR: `{% if platform == 'github' %}gh{% else %}fj{% endif %} pr create --title "..." --body "..." --base main`
+12. Open a PR: `just pr "<type>: <title>" <body-file>`
 13. **→ STOP (PR gate).** Leave a handoff note in `.ai/` and stop. The human reviews the diff and merges. Do not merge.
-{%- else %}
-
-1. Read `AGENTS.md`.
-2. Check `.ai/` for session notes or handoff context from the previous session.
-3. Read only the durable docs relevant to the task.
-4. Implement the agreed change. Keep it to the agreed scope.
-5. Run `just check`. Fix any failures before proceeding.
-6. Update `docs/` if durable behaviour changed. Write an ADR for any non-obvious architectural decision.
-7. Stage the relevant files (`git add <files>` — never `git add -A`) and propose a commit message.
-8. **→ STOP.** Wait for the human to review the staged diff and commit.
-9. Leave a brief handoff note in `.ai/` if needed.
-{%- endif %}
 
 ## Handoff expectations
 
 - What changed and what is next.
 - Assumptions made and open questions.
 - Whether any ADRs were written or a decision was deferred (and why).
-{%- if workflow_style == 'issues-prs' %}
 - PR link and whether CI is green.
-{%- else %}
-- Staged files and proposed commit message ready for human review.
-{%- endif %}
 
 ## Releases
-{%- if python != 'none' %}
 
-Before tagging, update the changelog:
-
-```bash
-uv run git-cliff -o CHANGELOG.md --tag v1.2.3
-git add CHANGELOG.md && git commit -m "chore: update changelog for v1.2.3"
-git push
-```
-
-Then create the release:
-
-{%- endif %}
+Releases are cut from `main` with one command:
 
 ```bash
-{% if platform == 'github' %}gh{% else %}fj{% endif %} release create v1.2.3 --title "v1.2.3" --notes "$({% if python != 'none' %}uv run git-cliff --latest --strip header{% else %}echo 'Release v1.2.3'{% endif %})"
+just release v1.2.3
 ```
 
-This creates the release page and pushes the underlying tag, which triggers the CD workflow{% if is_service %} (builds and pushes the Docker image){% endif %}. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.
+The recipe refuses to run unless you are on a clean `main` that matches `origin/main`. It {% if python != 'none' %}generates the release notes from the conventional commits since the last tag (git-cliff, configured in `cliff.toml`){% else %}writes a one-line release note{% endif %}, then creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The new tag triggers the CD workflow{% if is_service %} (builds and pushes the Docker image){% endif %}.
+
+There is no `CHANGELOG.md` in the repository: the release pages are the changelog (`just releases`), so a release needs no commit and no PR. Use [semver](https://semver.org/): `vMAJOR.MINOR.PATCH`.

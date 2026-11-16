@@ -1,4 +1,5 @@
-{%- if python == 'component' %}
+set positional-arguments
+{% if python == 'component' %}
 # Auto-format and fix imports
 fix:
     cd {{ component_dir }} && uv run ruff format
@@ -60,4 +61,133 @@ check:
 # Start the local docker compose stack
 up:
     docker compose up
+{%- endif %}
+
+# ── Forge ─────────────────────────────────────────────────────────────────────
+# Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
+{%- if platform != 'github' %}
+
+# fj cannot tell which repo is meant when several remotes exist and the branch
+# has no upstream, so every fj call is pinned to the host of `origin`.
+[private]
+_forge-host:
+    @git remote get-url origin | sed -E -e 's#^https?://([^@/]*@)?([^/]+).*#\2#;t' -e 's#^([a-z+]+://)?([^@/]*@)?([^:/]+).*#\3#'
+{%- endif %}
+
+# List open issues, optionally filtered by a search query
+issues *QUERY:
+{%- if platform == 'github' %}
+    if [ "$#" -gt 0 ]; then gh issue list --search "$*"; else gh issue list; fi
+{%- else %}
+    fj -H "$(just _forge-host)" issue search "$@"
+{%- endif %}
+
+# Show issue N with its comments
+issue N:
+{%- if platform == 'github' %}
+    gh issue view "$1" --comments
+{%- else %}
+    fj -H "$(just _forge-host)" issue view "$1"
+    fj -H "$(just _forge-host)" issue view "$1" comments
+{%- endif %}
+
+# Open a new issue; the body is read from FILE
+issue-new TITLE FILE:
+{%- if platform == 'github' %}
+    gh issue create --title "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" issue create "$1" --body-file "$2"
+{%- endif %}
+
+# Comment on issue N; the comment is read from FILE
+comment N FILE:
+{%- if platform == 'github' %}
+    gh issue comment "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" issue comment "$1" --body-file "$2"
+{%- endif %}
+
+# List open pull requests
+prs:
+{%- if platform == 'github' %}
+    gh pr list
+{%- else %}
+    fj -H "$(just _forge-host)" pr search
+{%- endif %}
+
+# Push the current branch and open a PR against main; the body is read from FILE
+pr TITLE FILE:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch=$(git branch --show-current)
+    if [ -z "$branch" ] || [ "$branch" = main ] || [ "$branch" = master ]; then
+        echo "error: open PRs from a feature branch, not from '${branch:-detached HEAD}'" >&2
+        exit 1
+    fi
+    git push -u origin HEAD
+{%- if platform == 'github' %}
+    gh pr create --title "$1" --base main --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr create "$1" --base main --body-file "$2"
+{%- endif %}
+
+# Show the diff of PR N
+pr-diff N:
+{%- if platform == 'github' %}
+    gh pr diff "$1"
+{%- else %}
+    fj -H "$(just _forge-host)" pr view "$1" diff
+{%- endif %}
+
+# Comment on PR N; the comment is read from FILE
+comment-pr N FILE:
+{%- if platform == 'github' %}
+    gh pr comment "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr comment "$1" --body-file "$2"
+{%- endif %}
+
+# List releases
+releases:
+{%- if platform == 'github' %}
+    gh release list
+{%- else %}
+    fj -H "$(just _forge-host)" release list
+{%- endif %}
+
+# Tag main as VERSION (vMAJOR.MINOR.PATCH) and publish a release with generated notes
+release VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version="$1"
+    if ! [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        echo "error: VERSION must look like v1.2.3, got '$version'" >&2
+        exit 1
+    fi
+    if [ "$(git branch --show-current)" != main ]; then
+        echo "error: releases are cut from main" >&2
+        exit 1
+    fi
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "error: working tree is not clean" >&2
+        exit 1
+    fi
+    git fetch --quiet --tags origin main
+    if [ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]; then
+        echo "error: local main differs from origin/main — pull or push first" >&2
+        exit 1
+    fi
+    notes=$(mktemp)
+    trap 'rm -f "$notes"' EXIT
+{%- if python == 'component' %}
+    uv run --project {{ component_dir }} git-cliff --unreleased --tag "$version" --strip header > "$notes"
+{%- elif python == 'root' %}
+    uv run git-cliff --unreleased --tag "$version" --strip header > "$notes"
+{%- else %}
+    echo "Release $version" > "$notes"
+{%- endif %}
+{%- if platform == 'github' %}
+    gh release create "$version" --title "$version" --target main --notes-file "$notes"
+{%- else %}
+    fj -H "$(just _forge-host)" release create "$version" --create-tag "$version" --branch main --body "$(cat "$notes")"
 {%- endif %}
