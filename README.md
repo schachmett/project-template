@@ -134,4 +134,4 @@ The first import is manual — no `.copier-answers.yml` means no merge baseline.
 just test-render
 ```
 
-Renders every platform × python × is_service combination with `uvx copier`, then checks that each rendered justfile parses, that every forge recipe resolves (`just --dry-run`), that no raw `gh`/`fj` command is left in the rendered docs, and that a project whose answers file still carries a removed question updates cleanly.
+Renders every platform × python × is_service combination and checks the output. See [docs/testing.md](docs/testing.md) for what it checks and how forge recipes are smoke-tested, [docs/operations.md](docs/operations.md) for what a forge needs so generated projects work (CI secret), and [docs/adr/](docs/adr/README.md) for design decisions.
