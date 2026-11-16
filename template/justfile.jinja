@@ -65,13 +65,21 @@ up:
 
 # ── Forge ─────────────────────────────────────────────────────────────────────
 # Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
+{%- if platform != 'github' %}
+
+# fj cannot tell which repo is meant when several remotes exist and the branch
+# has no upstream, so every fj call is pinned to the host of `origin`.
+[private]
+_forge-host:
+    @git remote get-url origin | sed -E -e 's#^https?://([^@/]*@)?([^/]+).*#\2#;t' -e 's#^([a-z+]+://)?([^@/]*@)?([^:/]+).*#\3#'
+{%- endif %}
 
 # List open issues, optionally filtered by a search query
 issues *QUERY:
 {%- if platform == 'github' %}
     if [ "$#" -gt 0 ]; then gh issue list --search "$*"; else gh issue list; fi
 {%- else %}
-    fj issue search "$@"
+    fj -H "$(just _forge-host)" issue search "$@"
 {%- endif %}
 
 # Show issue N with its comments
@@ -79,8 +87,8 @@ issue N:
 {%- if platform == 'github' %}
     gh issue view "$1" --comments
 {%- else %}
-    fj issue view "$1"
-    fj issue view "$1" comments
+    fj -H "$(just _forge-host)" issue view "$1"
+    fj -H "$(just _forge-host)" issue view "$1" comments
 {%- endif %}
 
 # Open a new issue; the body is read from FILE
@@ -88,7 +96,7 @@ issue-new TITLE FILE:
 {%- if platform == 'github' %}
     gh issue create --title "$1" --body-file "$2"
 {%- else %}
-    fj issue create "$1" --body-file "$2"
+    fj -H "$(just _forge-host)" issue create "$1" --body-file "$2"
 {%- endif %}
 
 # Comment on issue N; the comment is read from FILE
@@ -96,7 +104,7 @@ comment N FILE:
 {%- if platform == 'github' %}
     gh issue comment "$1" --body-file "$2"
 {%- else %}
-    fj issue comment "$1" --body-file "$2"
+    fj -H "$(just _forge-host)" issue comment "$1" --body-file "$2"
 {%- endif %}
 
 # List open pull requests
@@ -104,7 +112,7 @@ prs:
 {%- if platform == 'github' %}
     gh pr list
 {%- else %}
-    fj pr search
+    fj -H "$(just _forge-host)" pr search
 {%- endif %}
 
 # Push the current branch and open a PR against main; the body is read from FILE
@@ -120,7 +128,7 @@ pr TITLE FILE:
 {%- if platform == 'github' %}
     gh pr create --title "$1" --base main --body-file "$2"
 {%- else %}
-    fj pr create "$1" --base main --body-file "$2"
+    fj -H "$(just _forge-host)" pr create "$1" --base main --body-file "$2"
 {%- endif %}
 
 # Show the diff of PR N
@@ -128,7 +136,7 @@ pr-diff N:
 {%- if platform == 'github' %}
     gh pr diff "$1"
 {%- else %}
-    fj pr view "$1" diff
+    fj -H "$(just _forge-host)" pr view "$1" diff
 {%- endif %}
 
 # Comment on PR N; the comment is read from FILE
@@ -136,7 +144,7 @@ comment-pr N FILE:
 {%- if platform == 'github' %}
     gh pr comment "$1" --body-file "$2"
 {%- else %}
-    fj pr comment "$1" --body-file "$2"
+    fj -H "$(just _forge-host)" pr comment "$1" --body-file "$2"
 {%- endif %}
 
 # List releases
@@ -144,7 +152,7 @@ releases:
 {%- if platform == 'github' %}
     gh release list
 {%- else %}
-    fj release list
+    fj -H "$(just _forge-host)" release list
 {%- endif %}
 
 # Tag main as VERSION (vMAJOR.MINOR.PATCH) and publish a release with generated notes
@@ -181,5 +189,5 @@ release VERSION:
 {%- if platform == 'github' %}
     gh release create "$version" --title "$version" --target main --notes-file "$notes"
 {%- else %}
-    fj release create "$version" --create-tag "$version" --branch main --body "$(cat "$notes")"
+    fj -H "$(just _forge-host)" release create "$version" --create-tag "$version" --branch main --body "$(cat "$notes")"
 {%- endif %}
