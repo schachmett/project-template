@@ -1,6 +1,12 @@
 # Agent scratch space (body files, notes) — plans and handoffs live in issues and PRs
 .ai/
 
+{%- if 'claude' in agents %}
+
+# Per-user Claude Code settings
+.claude/settings.local.json
+{%- endif %}
+
 # Editor and OS
 .DS_Store
 .idea/

@@ -27,6 +27,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
 | `component_dir` | str | `backend` | Asked when python=component |
+| `agents` | multi-choice | `[claude]` | `claude`, `codex`, both or none. Selects the adapters; `AGENTS.md` and the skills are always generated |
 
 The template is Python-only: every generated project has a Python package, either at the repo root or in a component directory ([ADR 004](docs/adr/004-python-only.md)).
 
@@ -40,6 +41,8 @@ The template is Python-only: every generated project has a Python package, eithe
 ├── .env.example                 # (if secrets=env-only)
 ├── cliff.toml                   # git-cliff release notes config
 ├── Dockerfile                   # (if is_service)
+├── CLAUDE.md · .claude/         # (if agents has claude) @AGENTS.md, skills link, deny rules, Stop hook
+├── .codex/                      # (if agents has codex) command rules, Stop hook
 ├── .agents/skills/              # procedures as SKILL.md files
 │   ├── plan-issue/ · implement-issue/ · review-pr/ · release/
 │   └── (one SKILL.md each; they call only just)
@@ -51,7 +54,7 @@ The template is Python-only: every generated project has a Python package, eithe
 │   ├── adr/
 │   └── domain/
 ├── scripts/setup.sh             # installs the tools on a clean machine / cloud agent environment
-├── justfile                     # quality recipes; forge recipes: issues, labels, relations, PRs, releases
+├── justfile                     # quality recipes; forge recipes: issues, labels, relations, PRs, review, releases
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml

@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "deny": [
+{%- if platform == 'github' %}
+      "Bash(gh pr merge*)",
+      "Bash(gh api *merge*)",
+{%- else %}
+      "Bash(fj pr merge*)",
+      "Bash(fj * pr merge*)",
+{%- endif %}
+      "Bash(git push origin main*)",
+      "Bash(git push * HEAD:main*)",
+      "Bash(git push origin HEAD:main*)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "just stop-check"
+          }
+        ]
+      }
+    ]
+  }
+}
