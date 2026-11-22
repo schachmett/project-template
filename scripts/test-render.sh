@@ -40,6 +40,9 @@ check() { # check DEST PLATFORM
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 
     for recipe in "issues" "issues some query" "issue 1" "issue-new Title body.md" \
+        "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
+        "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
+        "issue-close 1 body.md" "labels" "labels-init" \
         "comment 1 body.md" "prs" "pr Title body.md" "pr-view 1" "pr-body 1 body.md" \
         "pr-diff 1" \
         "comment-pr 1 body.md" "releases" "release v1.2.3"; do
@@ -47,12 +50,22 @@ check() { # check DEST PLATFORM
         (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
     done
 
+    # Sub-issues and issue types exist on GitHub only.
+    for recipe in "issue-type 1 Bug" "issue-parent 2 1"; do
+        # shellcheck disable=SC2086
+        if (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1); then
+            [ "$platform" = github ] || fail "just $recipe exists on $platform"
+        else
+            [ "$platform" != github ] || fail "just --dry-run $recipe"
+        fi
+    done
+
     grep -q "^ *\(if .*; then \)\?$cli " "$dest/justfile" || fail "justfile does not call $cli"
     if grep -n "^ *$other " "$dest/justfile"; then fail "justfile calls $other"; fi
 
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
 
-    # Skills, markdown links, removed docs, raw gh/fj outside the forge skill.
+    # Skills, markdown links, removed docs, raw gh/fj commands.
     python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
 
     # Every rendered file ends with exactly one newline and has no trailing

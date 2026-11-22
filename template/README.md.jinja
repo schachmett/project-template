@@ -36,6 +36,11 @@ See [AGENTS.md](AGENTS.md) for the rules, the skills (procedures) and the docume
 
 - [uv](https://docs.astral.sh/uv/) ≥ 0.5
 - [just](https://just.systems/) (task runner)
+{%- if platform == 'github' %}
+- [GitHub CLI](https://cli.github.com/) ≥ 2.105 (issues, PRs, releases through `just`)
+{%- else %}
+- [forgejo-cli](https://codeberg.org/forgejo-contrib/forgejo-cli) (`fj`) 0.7 (issues, PRs, releases through `just`)
+{%- endif %}
 - Python {{ python_version }} (managed by uv via `.python-version`)
 
 ### Common commands

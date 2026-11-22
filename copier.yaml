@@ -50,6 +50,7 @@ _message_after_copy: |
     git remote add github https://github.com/{{ org }}/{{ project_name }}.git
   {%- endif %}
     git push -u origin main
+    just labels-init
   {%- if platform == 'both' %}
     git push github main
   {%- endif %}

@@ -7,7 +7,11 @@ description: Turn an issue into an implementation plan, post it as a comment on 
 
 1. **Find the issue.** `just issues` lists open issues, `just issue N` shows one with all its comments. Read the comments: an earlier plan or decision may already be there.
 
-   If the task has no issue, write one first: body to `.ai/forge/issue.md`, then `just issue-new "Title" .ai/forge/issue.md`. Title conventions are in `docs/workflow.md`.
+   If the task has no issue, write one first. Title, body sections, labels and relations are described under "Issues" in `docs/workflow.md`. Body to `.ai/forge/issue.md`, then
+
+   `just issue-new "Title" .ai/forge/issue.md type/<type> [prio/<prio>]`
+
+   and record what it depends on with `just issue-blocked-by N BLOCKER`.
 2. **Read what the task touches.** The docs listed in `AGENTS.md` that are relevant, the ADRs for the area, and the code you expect to change. Do not read everything.
 3. **Write the plan** to `.ai/forge/plan-N.md`:
    - what changes, file by file, and why

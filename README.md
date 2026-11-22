@@ -41,7 +41,7 @@ The template is Python-only: every generated project has a Python package, eithe
 ├── Dockerfile                   # (if is_service)
 ├── .agents/skills/              # procedures as SKILL.md files
 │   ├── plan-issue/ · implement-issue/ · review-pr/ · release/
-│   └── forge/                   # the only place raw gh/fj is allowed
+│   └── (one SKILL.md each; they call only just)
 ├── docs/
 │   ├── workflow.md              # gates and why, conventions, quality gates, definition of done
 │   ├── codestyle.md             # code and test conventions
@@ -49,7 +49,7 @@ The template is Python-only: every generated project has a Python package, eithe
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
-├── justfile                     # quality recipes, forge recipes (issues, PRs, releases)
+├── justfile                     # quality recipes; forge recipes: issues, labels, relations, PRs, releases
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml

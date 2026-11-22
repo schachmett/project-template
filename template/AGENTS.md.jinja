@@ -6,7 +6,7 @@ Agent entry point. Read this, then only the skill and the docs your task needs.
 
 1. **Every change belongs to an issue.** Post the plan as a comment on the issue and wait for the human's go before editing any file.
 2. **Never commit to `main`, never merge.** Work on a branch, open a PR, stop. The human reviews and merges.
-3. **Everything goes through `just`** — `just --list` shows the recipes. Do not call `ruff`, `pyright`, `pytest` or `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly; the `forge` skill is the one exception. `just check` passes before a PR is opened.
+3. **Everything goes through `just`** — `just --list` shows the recipes. Do not call `ruff`, `pyright`, `pytest` or `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly. `just check` passes before a PR is opened.
 4. **No plaintext secrets in any file.**
 {%- if secrets == 'sops' %} Secrets are SOPS-encrypted files in the repo; edit them with `sops <file>`.
 {%- elif secrets == 'env-only' %} Secrets come from `.env` (gitignored; copy `.env.example`). Never commit it.
@@ -23,7 +23,6 @@ Procedures live in `.agents/skills/<name>/SKILL.md`. Read the one that fits befo
 | [implement-issue](.agents/skills/implement-issue/SKILL.md) | the plan is approved — ends with a PR, waiting for review |
 | [review-pr](.agents/skills/review-pr/SKILL.md) | asked to review a PR |
 | [release](.agents/skills/release/SKILL.md) | the human asks for a release |
-| [forge](.agents/skills/forge/SKILL.md) | labels, {% if platform == 'github' %}issue types{% else %}issue dependencies{% endif %} — anything on the forge without a recipe |
 
 ## Docs
 

@@ -11,10 +11,10 @@ just test-render
 Renders every platform × python × is_service combination with `uvx copier` and checks, for each:
 
 - `just --list` parses the rendered justfile
-- `just --dry-run` resolves every forge recipe
+- `just --dry-run` resolves every forge recipe; `issue-type` and `issue-parent` exist on GitHub only
 - the justfile calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
-- `scripts/check_render.py`: the five skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; raw `gh`/`fj` commands appear only in the `forge` skill
+- `scripts/check_render.py`: the four skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; no raw `gh`/`fj` command appears in any markdown file
 - every file ends with exactly one newline and has no trailing whitespace
 - `.pre-commit-config.yaml` loads (`pre-commit validate-config`)
 - detect-secrets 1.5.0 reports nothing in the fresh project, apart from the excluded answers file (see [ADR 005](adr/005-detect-secrets-without-baseline.md))
@@ -34,25 +34,26 @@ When a question or choice is added, extend the matrix in `scripts/test-render.sh
 `--dry-run` only shows that a recipe resolves. A change to a forge recipe is tested for real against a scratch repo (see [operations.md](operations.md)):
 
 1. Render a project for the platform, commit it, push it to the scratch repo as `main`.
-2. Run each recipe: `issues`, `issue-new`, `comment`, `issue`, then from a feature branch `pr`, `prs`, `pr-view`, `pr-body`, `pr-diff`, `comment-pr`, then from `main` `release` and `releases`.
+2. Run each recipe: `labels-init` (twice — the second run must create nothing), `issues`, `issue-new` with and without labels, `issue-label`, `issue-unlabel`, `issue-blocked-by`, `issue`, `issue-unblock`, `comment`, `issue-close`, then from a feature branch `pr`, `prs`, `pr-view`, `pr-body`, `pr-diff`, `comment-pr`, then from `main` `release` and `releases`.
 3. Use a title with `"quotes"` and `$HOME` at least once.
 4. Check the four `release` guards: not on `main`, malformed version, dirty tree, `main` ahead of `origin/main`.
 5. For fj, repeat a few recipes from a branch without upstream in a clone with a second remote — plain `fj` fails there (see [ADR 001](adr/001-just-is-the-forge-interface.md)).
 
-A change to the `forge` skill is tested the same way: run every fj command it lists against the scratch repo.
+The gh recipes cannot be run without a GitHub scratch repo. Check their argument handling with a stub `gh` on `PATH` that prints its arguments.
 
 Things that look like failures but are not:
 
 - Forgejo's issue search lags a few seconds behind creation; `just issues <query>` right after `just issue-new` can come back empty.
-- `fj issue depend remove` (0.7.0) prints `unexpected status code 201 Created` and exits non-zero, but the dependency is removed.
+- `fj issue depend remove` (0.7.0) prints `unexpected status code 201 Created` and exits non-zero, but the dependency is removed. `issue-unblock` checks the result instead of the exit code.
+- fj prints results such as `created issue #N` on stderr, and `repo labels view` prints exclusive labels as `scope  name` instead of `scope/name`. `issue-new` and `labels-init` parse both.
 - fj wraps names and numbers in invisible Unicode isolate characters when its output is piped.
 
 ## Tested versions
 
 | Tool | Version | How |
 |---|---|---|
-| forgejo-cli (`fj`) | 0.7.0 | every recipe and every command of the `forge` skill run against a scratch repo |
-| GitHub CLI (`gh`) | 2.46.0 | recipes: `--dry-run` and `--help` only; `forge` skill: `--help` only — not run against GitHub |
+| forgejo-cli (`fj`) | 0.7.0 | every recipe run against a scratch repo |
+| GitHub CLI (`gh`) | 2.105.0 | flags from `--help`, argument handling with a stub — not run against GitHub. Issue types, sub-issues and blocked-by do not exist in 2.46.0 (Debian's package) |
 | just | 1.40.0 | |
 | detect-secrets | 1.5.0 | hook run over every rendered project; pinned in the generated pre-commit config |
 | git-cliff | from the generated project's dev dependencies | release notes for root and component layout |

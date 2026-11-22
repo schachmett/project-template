@@ -9,7 +9,7 @@ import re
 import sys
 from pathlib import Path
 
-SKILLS = ("plan-issue", "implement-issue", "review-pr", "release", "forge")
+SKILLS = ("plan-issue", "implement-issue", "review-pr", "release")
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 RAW_FORGE_CLI = re.compile(r"(^|[`\s])(gh|fj) (-H \S+ )?(issue|pr|release|repo|milestone|label|api)\b", re.MULTILINE)
 REMOVED_DOCS = ("agent-workflow.md", "quality-gates.md", "docs/testing.md")
@@ -37,7 +37,6 @@ def check_skills(root: Path) -> list[str]:
 
 def check_markdown(root: Path) -> list[str]:
     problems: list[str] = []
-    forge_skill = root / ".agents" / "skills" / "forge"
     for path in sorted(root.rglob("*.md")):
         if ".venv" in path.parts or ".git" in path.parts:
             continue
@@ -53,8 +52,8 @@ def check_markdown(root: Path) -> list[str]:
         for removed in REMOVED_DOCS:
             if removed in text:
                 problems.append(f"{rel}: mentions removed doc {removed}")
-        if forge_skill not in path.parents and RAW_FORGE_CLI.search(text):
-            problems.append(f"{rel}: raw gh/fj command outside the forge skill")
+        if RAW_FORGE_CLI.search(text):
+            problems.append(f"{rel}: raw gh/fj command")
     return problems
 
 

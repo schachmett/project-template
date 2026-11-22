@@ -46,3 +46,4 @@ What becomes easier or harder as a result?
 - [006: No docker-compose file in generated projects](006-no-docker-compose.md)
 - [007: Procedures are skills, docs explain why](007-procedures-are-skills.md)
 - [008: Plan and handoff live in the issue and the PR](008-state-lives-in-issue-and-pr.md)
+- [009: Type and priority labels, native relations, all through recipes](009-labels-and-relations.md)
