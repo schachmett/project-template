@@ -23,6 +23,6 @@ Rules the recipes follow:
 
 - A CLI change is fixed in one place, and `just test-render` plus a smoke test can check it (see [testing.md](../testing.md)).
 - The recipe set is a contract: skills and docs depend on the names and argument order.
-- Anything the recipes do not cover (labels, milestones, dependencies) still needs the raw CLI; that is to be documented in one place only (the planned `forge` skill, issue #5).
+- Labels, relations between issues and closing were added as recipes later ([ADR 009](009-labels-and-relations.md)). What is still not covered (milestones, GitHub Projects) is deliberately left to the human.
 - For `https://host:port/…` remotes the port is passed to `fj -H`; this is untested.
 - The `gh` recipes have only been dry-run, not exercised against GitHub.

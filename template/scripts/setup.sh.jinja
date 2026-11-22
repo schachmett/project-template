@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# Install the tools this repository needs on a clean Linux machine (x86_64 or
+# aarch64) and prepare the checkout. Meant for a new workstation and as the
+# environment setup step of cloud agents. Safe to run again.
+#
+# Tools go to ~/.local/bin; nothing needs root. Existing tools are kept.
+{%- if platform == 'github' %}
+# The forge token is read from GH_TOKEN by gh itself and is never written anywhere.
+{%- else %}
+# With FORGEJO_TOKEN set, fj is logged in to the forge of `origin`. The token is
+# handed to fj on stdin; this script never writes it to a file of its own.
+{%- endif %}
+set -euo pipefail
+
+{% if platform == 'github' -%}
+GH_VERSION=2.105.0
+{%- else -%}
+FJ_VERSION=0.7.0
+{%- endif %}
+BIN="$HOME/.local/bin"
+mkdir -p "$BIN"
+export PATH="$BIN:$PATH"
+
+case "$(uname -m)" in
+    x86_64) arch=x86_64 ;;
+    aarch64 | arm64) arch=aarch64 ;;
+    *) echo "error: unsupported architecture $(uname -m)" >&2; exit 1 ;;
+esac
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+have uv || curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR="$BIN" INSTALLER_NO_MODIFY_PATH=1 sh
+have just || uv tool install rust-just
+{%- if hooks != 'none' %}
+have pre-commit || uv tool install pre-commit
+{%- endif %}
+{%- if platform == 'github' %}
+
+if ! have gh; then
+    if [ "$arch" = x86_64 ]; then gh_arch=amd64; else gh_arch=arm64; fi
+    tmp=$(mktemp -d)
+    curl -fsSL "https://github.com/cli/cli/releases/download/v$GH_VERSION/gh_${GH_VERSION}_linux_$gh_arch.tar.gz" |
+        tar -xz -C "$tmp"
+    install -m 755 "$tmp/gh_${GH_VERSION}_linux_$gh_arch/bin/gh" "$BIN/gh"
+    rm -rf "$tmp"
+fi
+
+[ -n "${GH_TOKEN:-}" ] || gh auth status >/dev/null 2>&1 ||
+    echo "note: gh is not logged in — export GH_TOKEN or run 'gh auth login'" >&2
+{%- else %}
+
+if ! have fj; then
+    tmp=$(mktemp -d)
+    curl -fsSL "https://codeberg.org/forgejo-contrib/forgejo-cli/releases/download/v$FJ_VERSION/forgejo-cli-$arch-linux.tar.gz" |
+        tar -xz -C "$tmp"
+    install -m 755 "$(find "$tmp" -type f -name fj | head -n 1)" "$BIN/fj"
+    rm -rf "$tmp"
+fi
+
+if git remote get-url origin >/dev/null 2>&1; then
+    host=$(just _forge-host)
+    if fj auth list 2>/dev/null | grep -qxF "$host"; then
+        :
+    elif [ -n "${FORGEJO_TOKEN:-}" ]; then
+        printf '%s' "$FORGEJO_TOKEN" | fj -H "$host" auth add-token
+    else
+        echo "note: fj is not logged in to $host — export FORGEJO_TOKEN and run this again, or 'fj -H $host auth login'" >&2
+    fi
+fi
+{%- endif %}
+
+{% if python == 'component' %}(cd {{ component_dir }} && uv sync --frozen){% else %}uv sync --frozen{% endif %}
+{%- if hooks != 'none' %}
+[ ! -d .git ] || pre-commit install
+{%- endif %}
+
+just doctor

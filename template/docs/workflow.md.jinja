@@ -1,0 +1,164 @@
+# Workflow
+
+How work moves through this repository, and why. The step-by-step procedures are skills (`.agents/skills/`, indexed in [AGENTS.md](../AGENTS.md)); this file holds the conventions and the reasons behind them.
+
+## The two gates
+
+Work is split so that a human decides twice:
+
+1. **Plan gate.** The plan is posted on the issue and nothing is edited until the human approves it. A wrong direction is cheap to correct in a comment and expensive in a diff.
+2. **Merge gate.** The agent opens a PR and stops. The human reviews and merges.
+
+The gates are also the points where the human can switch models or hand the PR to a separate reviewing agent.
+
+### Small changes
+
+A typo, a dependency bump, a one-line fix: two waits are one too many. A change is **small** when it changes no behaviour beyond what the issue states, adds no dependency, changes no interface, schema or stored format, and needs no ADR. A small change skips the plan gate: the issue body is the plan, the agent implements and opens the PR, and the merge gate stays. The PR body says `No plan — small change` so the reviewer sees which lane was used.
+
+If any of the conditions is in doubt, it is not small. The human's word on the issue overrides the definition in both directions: "plan first" forces a plan, "no plan needed" waives it.
+
+### Enforcement
+
+The merge gate should not depend on the agent's cooperation. Two things on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %} make it hold; both are set up once per repository by its admin and are listed in the steps copier prints after generating the project.
+
+- **Branch protection on `main`:** no direct pushes, merging only with an approving review.
+{%- if platform == 'github' %} `just forge-protect` applies it. (GitHub offers branch protection on private repositories only on paid plans.)
+{%- else %} fj cannot manage branch protection, so it is set by hand: repository **Settings → Branches → Add new rule**, branch name pattern `main`, disable push, required approvals `1`.
+{%- endif %}
+- **Agents use their own account or token without merge rights:** write access to branches and PRs, no admin rights. Protection binds non-admin accounts; a repository admin can bypass or remove it. An agent that runs with an admin's token is therefore not constrained by it — the gate only holds against a separate, non-admin account. A human who works alone merges their own PRs as admin, since nobody can approve their own PR.
+- **Backstops in the repo:** {% if hooks != 'none' %}the `no-commit-to-main` pre-commit hook blocks local commits on `main`, and {% endif %}CI runs `just check` on every push and pull request.
+
+There is no merge recipe in the `justfile`. The plan gate stays a convention; the `plan-issue` skill carries it out.
+
+## Where information lives
+
+| Place | What belongs there |
+|---|---|
+| `docs/` | What should outlive the task: architecture, domain rules, conventions, runbooks, ADRs |
+| Issue | The problem, the plan, decisions made along the way |
+| PR body | The handoff: what changed, how it was verified, assumptions, open questions, ADRs |
+| `.ai/` | Gitignored scratch: notes and scripts, possibly kept by the human across sessions. Body files for `just` go in `.ai/forge/`. Never referenced from committed files, never the only copy of something that matters |
+
+Issues and PRs on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %} are the authoritative record of planned and completed work, so a new session, another machine or another tool can pick up from them.
+{%- if platform == 'both' %} GitHub is a mirror: the code is readable there, but issues, PRs and releases live on Forgejo.
+{%- endif %}
+
+When you find a bug, open an issue before or alongside the fix. Nothing gets fixed without a record. Decisions and findings do not stay in issues: they go into `docs/` or an ADR, and the issue points there when it closes.
+
+**Drift policy.** If a change makes a doc wrong, fix the doc in the same PR. Move only stable conclusions into `docs/`; task chatter stays in the issue. Put a finding into the existing file it belongs to; create a new `docs/domain/` file only for a subject that has no home. Write an ADR for every non-obvious architectural decision.
+
+## Conventions
+
+**Branches:** `<type>/<short-description>`, always from an up-to-date `main`. Types: `feat`, `fix`, `docs`, `refactor`, `chore`, `test`.
+
+**Commits:** conventional commits, see [codestyle.md](codestyle.md#commit-messages). Release notes are generated from them.
+
+**PRs:** reference the issue (`Closes #N` or `Part of #N`). The body follows the template in the `implement-issue` skill.
+
+**Forge operations:** through `just` only; titles are arguments, bodies are files written to `.ai/forge/` first. `just --list` shows what exists.
+
+**Tools:** `scripts/setup.sh` installs everything on a clean Linux machine or in a cloud agent's environment; `just doctor` checks that the tools are present, recent enough ({% if platform == 'github' %}gh ≥ 2.105{% else %}fj ≥ 0.7{% endif %}) and logged in.
+
+## Issues
+
+**Title:** plain English and problem-focused — what is wrong or missing, not what will be done. No type prefix, no solution in the title. For research issues the title is the question.
+
+**Body**, as sections: **Context** (what is the case today and why it is a problem), **Target** (the state after the issue is done, concrete enough to review against), **Why** (so the priority can be questioned later), **Notes** (links, open points). A research issue has **Done when** instead of Target: where the answer is decided and which document takes the result. The body is a brief, not a diary — discussion happens in comments.
+
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+
+**Type.** This repository belongs to an organisation, so every issue has exactly one native issue type — not a `type/` label. Set it at creation by passing `type/<Name>`, with the name as the organisation defines it:
+
+```bash
+just issue-new "Title" .ai/forge/issue.md type/Bug
+```
+
+`just issue-type N TYPE` changes it later. GitHub's default types are `Bug`, `Feature` and `Task`. If the organisation defines more (research, epic, operations, …), `docs/project-management.md` lists them and what they mean.
+
+**Labels.** `prio/high` and `prio/low` are optional; no label means normal priority. `just labels-init` creates them once per repository, and they can be passed at creation: `just issue-new TITLE FILE prio/high`.
+{%- else %}
+
+**Labels.** Every issue has exactly one `type/` label, set at creation (`just issue-new TITLE FILE type/bug`). `just labels-init` creates the set once per repository.
+
+| Label | Use it for |
+|---|---|
+| `type/bug` | Behaviour that is wrong today |
+| `type/feature` | Something the software should do and does not do yet, or should do differently |
+| `type/task` | Work that changes no behaviour: tooling, housekeeping, setup |
+| `type/docs` | Documentation only |
+| `type/research` | A question to answer before work can be planned |
+| `type/epic` | A parent that groups issues towards one outcome; carries no work itself |
+| `type/operations` | Manual work outside the code: delivery, deployments, related systems, administration |
+| `prio/high`, `prio/low` | Optional. No label means normal priority |
+{%- endif %}
+
+`area/<component>` labels are added per project when needed. There are no status labels: open/closed, the linked PR and the relations below say where an issue stands.
+
+**Relations** are set on the forge, not described in prose:
+
+- `just issue-blocked-by N BLOCKER` — N cannot be finished before BLOCKER. A real dependency, not "nice to have first". `just issue-unblock` removes it.
+{%- if platform == 'github' %}
+- `just issue-parent N PARENT` — N is a sub-issue of an epic. One parent per issue; the epic's body says what "done" means for the whole.
+{%- else %}
+- Forgejo has no sub-issues: an epic is blocked by each of its parts (`just issue-blocked-by EPIC PART`), and its body says what "done" means for the whole.
+{%- endif %}
+- Two issues that merely touch the same area: a `Related: #N` line in the body.
+
+`just issue N` shows an issue with its comments and relations.
+
+**Closing.** Issues close when the PR with `Closes #N` is merged. Without a PR (research, operations, superseded), close with a pointer to where the result lives: `just issue-close N FILE`.
+
+If the repository has a `docs/project-management.md` (a shared project board with its own types and fields), that file takes precedence over this section.
+
+## Quality gates
+
+```bash
+{% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen    # install / sync dependencies
+
+just fix       # ruff format + ruff check --fix — run before committing
+just check     # everything CI runs
+```
+
+`just check` is `just static test`, i.e. `lint` (ruff format --check, ruff check), `typecheck` (pyright) and `test` (pytest with coverage). Each can be run alone.
+
+| Gate | What it enforces |
+|---|---|
+| Format | `ruff format --check` — no auto-fix in CI |
+| Lint | ruff with `select = ["ALL"]`; the ignore list is in `pyproject.toml` |
+| Typecheck | pyright strict — no implicit `Any`, public functions annotated |
+| Tests | pytest with branch coverage; fails below 80% |
+
+CI runs `just check` on every push and pull request.
+
+### Pre-commit hooks
+{% if hooks == 'none' %}
+No pre-commit hooks are configured for this project.
+{%- else %}
+Install once after cloning with `pre-commit install`; run all of them with `pre-commit run --all-files`. Which hooks run is defined in `.pre-commit-config.yaml` — that file is the list.
+
+`detect-secrets` runs without a baseline file: every finding blocks the commit. Mark a false positive on its line:
+
+```python
+EXAMPLE_KEY = "AKIAIOSFODNN7EXAMPLE"  # pragma: allowlist secret
+```
+
+If a project accumulates false positives that cannot be annotated inline (generated files, fixtures full of fake keys), switch to a baseline: run `detect-secrets scan > .secrets.baseline`, commit the file, and add `args: ["--baseline", ".secrets.baseline"]` to the hook in `.pre-commit-config.yaml`.
+{%- endif %}
+
+### Definition of done
+
+A change is ready to merge when:
+
+- [ ] `just check` passes locally and CI is green on the PR
+- [ ] New behaviour has test coverage
+- [ ] `docs/` is updated where the change affects documented behaviour
+- [ ] Any new architectural decision is recorded in `docs/adr/`
+- [ ] The PR body says how the change was verified and what was not
+
+## Releases
+
+Releases are cut from `main` with `just release vX.Y.Z` ([semver](https://semver.org/)), on the human's request; the procedure is the `release` skill.
+
+The recipe refuses to run unless it is on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `cliff.toml`) and creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The tag triggers the CD workflow{% if is_service %}, which builds and pushes the Docker image{% endif %}.
+
+There is no `CHANGELOG.md`: the release pages are the changelog (`just releases`), so a release needs no commit and no PR.

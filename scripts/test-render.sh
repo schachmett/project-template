@@ -25,37 +25,56 @@ fail() {
     failures=$((failures + 1))
 }
 
-render() { # render DEST PLATFORM PYTHON IS_SERVICE
+render() { # render DEST PLATFORM PYTHON IS_SERVICE [GITHUB_OWNER_TYPE]
     "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
         -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
+        -d github_owner_type="${5:-personal}" \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
-check() { # check DEST PLATFORM
+check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     local dest=$1 platform=$2 cli other recipe
     if [ "$platform" = github ]; then cli=gh other=fj; else cli=fj other=gh; fi
 
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 
-    for recipe in "issues" "issues some query" "issue 1" "issue-new Title body.md" \
-        "comment 1 body.md" "prs" "pr Title body.md" "pr-diff 1" \
+    for recipe in "doctor" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
+        "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
+        "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
+        "issue-close 1 body.md" "labels" "labels-init" \
+        "comment 1 body.md" "prs" "pr Title body.md" "pr-view 1" "pr-body 1 body.md" \
+        "pr-diff 1" \
         "comment-pr 1 body.md" "releases" "release v1.2.3"; do
         # shellcheck disable=SC2086
         (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
     done
+
+    # Sub-issues exist on GitHub only; native issue types only for organisations,
+    # which get no type/ labels in return.
+    local owner=${3:-personal} want_parent=no want_type=no
+    [ "$platform" != github ] || want_parent=yes
+    if [ "$platform" = github ] && [ "$owner" = organization ]; then want_type=yes; fi
+    has() { (cd "$dest" && just --dry-run "$@" >/dev/null 2>&1) && echo yes || echo no; }
+    [ "$(has issue-parent 2 1)" = "$want_parent" ] || fail "issue-parent: expected $want_parent"
+    [ "$(has issue-type 1 Bug)" = "$want_type" ] || fail "issue-type: expected $want_type"
+    # fj cannot manage branch protection, so forge-protect exists on GitHub only.
+    [ "$(has forge-protect)" = "$want_parent" ] || fail "forge-protect: expected $want_parent"
+    [ -x "$dest/scripts/setup.sh" ] && bash -n "$dest/scripts/setup.sh" || fail "scripts/setup.sh"
+    if grep -q "type/bug" "$dest/justfile" "$dest/docs/workflow.md"; then
+        [ "$want_type" = no ] || fail "type/ labels in an organisation project"
+    else
+        [ "$want_type" = yes ] || fail "type/ labels missing"
+    fi
 
     grep -q "^ *\(if .*; then \)\?$cli " "$dest/justfile" || fail "justfile does not call $cli"
     if grep -n "^ *$other " "$dest/justfile"; then fail "justfile calls $other"; fi
 
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
 
-    # No raw forge CLI commands in the docs — everything goes through just.
-    if grep -rnE '(^|[`[:space:]])(gh|fj) (issue|pr|release|repo)\b' \
-        "$dest/AGENTS.md" "$dest/README.md" "$dest/docs"; then
-        fail "raw gh/fj command in rendered docs"
-    fi
+    # Skills, markdown links, removed docs, raw gh/fj commands.
+    python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
 
     # Every rendered file ends with exactly one newline and has no trailing
     # whitespace, as the end-of-file-fixer and trailing-whitespace hooks demand.
@@ -83,6 +102,13 @@ for platform in forgejo github both; do
             echo "== $name"
             if render "$work/$name" "$platform" "$python" "$is_service"; then
                 check "$work/$name" "$platform"
+            else
+                fail "copier copy"
+            fi
+            [ "$platform" = github ] || continue
+            echo "== $name (organization)"
+            if render "$work/$name-org" "$platform" "$python" "$is_service" organization; then
+                check "$work/$name-org" "$platform" organization
             else
                 fail "copier copy"
             fi

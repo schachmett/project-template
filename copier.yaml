@@ -50,6 +50,19 @@ _message_after_copy: |
     git remote add github https://github.com/{{ org }}/{{ project_name }}.git
   {%- endif %}
     git push -u origin main
+    just labels-init
+
+  Then make the merge gate hold on the forge (see docs/workflow.md, "Enforcement"):
+  {%- if platform == 'github' %}
+    just forge-protect     # main: pull requests only, one approving review (non-admins)
+  {%- else %}
+    Protect main by hand — fj cannot do it: Settings → Branches → Add new rule,
+    pattern "main", disable push, required approvals 1.
+  {%- endif %}
+    Give agents their own account or token with write access but without admin
+    or merge rights.
+
+  On another machine or in a cloud agent environment: scripts/setup.sh
   {%- if platform == 'both' %}
     git push github main
   {%- endif %}
@@ -84,6 +97,15 @@ org:
   type: str
   help: "GitHub/Forgejo organization or username (used in remote URLs)"
   default: ""
+
+github_owner_type:
+  type: str
+  help: "Is that GitHub owner an organization or a personal account? Organizations have native issue types; personal accounts get type/ labels instead"
+  choices:
+    - personal
+    - organization
+  default: personal
+  when: "{{ platform == 'github' }}"
 
 python:
   type: str
