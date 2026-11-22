@@ -12,7 +12,7 @@ Session handoffs went to `.ai/`, which is gitignored. A cloud session, a second 
 - The **plan** is a comment on the issue; changes to it are further comments.
 - The **handoff** is the PR body, with a fixed set of sections: what changed, how it was verified, assumptions, open questions, ADRs. The template is in the `implement-issue` skill.
 - If a session ends before a PR exists, the branch is pushed and a progress comment goes on the issue.
-- `.ai/` is scratch only: body files for the `just` recipes, notes, throwaway scripts.
+- `.ai/` is scratch only. Body files for the `just` recipes go in `.ai/forge/`, so they do not clutter notes and scripts the human keeps in `.ai/` across sessions.
 
 Two recipes exist because of this: `pr-view N` (body, comments, mergeability and CI status) to read the state back, and `pr-body N FILE` to keep the handoff current after follow-up commits.
 

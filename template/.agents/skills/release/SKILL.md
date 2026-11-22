@@ -13,8 +13,10 @@ A release creates a tag, publishes notes and triggers the CD workflow. Do it onl
    - a breaking change (`!` or `BREAKING CHANGE`) → major
    - any `feat` → minor
    - otherwise → patch
+
    Tell the human which version you propose and why; wait for their confirmation.
 4. **Release:** `just release vX.Y.Z`
+
    The notes are generated from the conventional commits. There is no `CHANGELOG.md` and nothing to commit.
 5. **Confirm:** `just releases` shows the new version. Report it, and that CD was triggered by the tag.
 

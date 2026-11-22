@@ -23,7 +23,7 @@ Procedures live in `.agents/skills/<name>/SKILL.md`. Read the one that fits befo
 | [implement-issue](.agents/skills/implement-issue/SKILL.md) | the plan is approved — ends with a PR, waiting for review |
 | [review-pr](.agents/skills/review-pr/SKILL.md) | asked to review a PR |
 | [release](.agents/skills/release/SKILL.md) | the human asks for a release |
-| [forge](.agents/skills/forge/SKILL.md) | labels, milestones, issue dependencies — anything on the forge without a recipe |
+| [forge](.agents/skills/forge/SKILL.md) | labels, {% if platform == 'github' %}issue types{% else %}issue dependencies{% endif %} — anything on the forge without a recipe |
 
 ## Docs
 
@@ -38,4 +38,4 @@ Procedures live in `.agents/skills/<name>/SKILL.md`. Read the one that fits befo
 
 ## State
 
-The plan lives in the issue, the handoff in the PR body. `.ai/` is gitignored scratch space — body files for `just`, notes, throwaway scripts. Nothing that matters exists only there, and committed files never reference it.
+The plan lives in the issue, the handoff in the PR body. `.ai/` is gitignored scratch space. Body files for `just` go in `.ai/forge/`; do not tidy or delete anything else there — the human may keep notes and scripts in it across sessions. Nothing that matters exists only in `.ai/`, and committed files never reference it.

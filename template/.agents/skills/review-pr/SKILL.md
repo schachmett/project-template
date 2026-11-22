@@ -17,11 +17,11 @@ You review; you do not fix, approve or merge.
    - **Docs and ADRs** — updated where the change makes them wrong; a non-obvious decision has an ADR.
    - **Handoff** — does the body say how it was verified and what was not?
    - **Definition of done** in `docs/workflow.md`, including CI.
-4. **Write the review** to `.ai/review-N.md`:
+4. **Write the review** to `.ai/forge/review-N.md`:
    - verdict first: *ready to merge*, *ready after small fixes*, or *needs rework*
    - findings, most severe first, each with file and line, what happens, and why it matters
    - questions for the author
    - what you did not check
    Report only what you verified in the code. No style remarks that `just fix` would settle.
-5. **Post it:** `just comment-pr N .ai/review-N.md`
+5. **Post it:** `just comment-pr N .ai/forge/review-N.md`
 6. **Stop.** The human decides what happens next.

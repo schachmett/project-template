@@ -15,7 +15,7 @@ The Forgejo workflows therefore pass `secrets.GH_PAT` to both actions.
 
 - **What token:** it only reads public repositories. A fine-grained token with repository access "Public repositories (read-only)" and no permissions is enough; so is a classic token with no scopes.
 - **Expiry:** the token grants nothing an anonymous user lacks apart from the owner's rate limit, so no expiry is defensible. With an expiry, CI of every project fails on the day it runs out.
-- **Where:** set it once as a **user-level or organisation-level** Actions secret in Forgejo (Settings → Actions → Secrets). Every repo of that owner then has it, and new projects need no per-repo step. This is how it is set up on git.pw13.eu.
+- **Where:** set it once as a **user-level or organisation-level** Actions secret in Forgejo (Settings → Actions → Secrets). Every repo of that owner then has it, and new projects need no per-repo step. This is how it is set up on git.pw13.eu, which is why generated projects do not mention the secret in their own docs.
 
 CD needs no extra secret: it logs in to the container registry with the built-in token and `packages: write`.
 

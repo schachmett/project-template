@@ -1,6 +1,6 @@
 ---
 name: forge
-description: Forge operations that have no just recipe — labels, milestones, issue dependencies, closing issues. The only place where calling {% if platform == 'github' %}gh{% else %}fj{% endif %} directly is allowed. Use when a task needs one of these.
+description: Forge operations that have no just recipe — {% if platform == 'github' %}labels, issue types, closing issues{% else %}labels, issue dependencies, closing issues{% endif %}. The only place where calling {% if platform == 'github' %}gh{% else %}fj{% endif %} directly is allowed. Use when a task needs one of these.
 ---
 
 # Forge special cases
@@ -21,16 +21,17 @@ gh issue edit 12 --add-label "bug,area/api" --remove-label "triage"
 gh pr edit 34 --add-label "bug"
 ```
 
-## Milestones
+## Issue types
 
-`gh` has no milestone command; list and create go through the API.
+Issue types (Bug, Feature, Task, …) are defined per organisation. `gh` 2.46.0 has no flag for them, so they go through the API. Not run against GitHub — if a call fails, check `gh --version` and `gh issue edit --help` for a `--type` flag first.
 
 ```bash
-gh api "repos/{owner}/{repo}/milestones"
-gh api "repos/{owner}/{repo}/milestones" -f title="v1.0" -f description="First stable release"
-gh issue edit 12 --milestone "v1.0"
-gh pr edit 34 --milestone "v1.0"
+gh api "orgs/{owner}/issue-types" --jq '.[].name'               # types that exist
+gh api "repos/{owner}/{repo}/issues/12" --jq '.type.name'       # type of an issue
+gh api -X PATCH "repos/{owner}/{repo}/issues/12" -f type=Bug    # set it
 ```
+
+Set the type when opening an issue: `just issue-new` first, then the PATCH call with the new number.
 
 ## Dependencies
 
@@ -56,16 +57,6 @@ fj -H "$(just _forge-host)" repo labels view
 fj -H "$(just _forge-host)" repo labels create "area/api" 1d76db --description "API surface"
 fj -H "$(just _forge-host)" issue edit 12 labels --add bug --add area/api --rm triage
 fj -H "$(just _forge-host)" pr edit 34 labels --add bug
-```
-
-## Milestones
-
-```bash
-fj -H "$(just _forge-host)" milestone search
-fj -H "$(just _forge-host)" milestone create "v1.0" --state open --description "First stable release"
-fj -H "$(just _forge-host)" issue edit 12 milestone "v1.0"
-fj -H "$(just _forge-host)" pr edit 34 milestone "v1.0"
-fj -H "$(just _forge-host)" issue edit 12 milestone --unset
 ```
 
 ## Dependencies

@@ -21,4 +21,5 @@ Generated projects carried their process in always-loaded prose: AGENTS.md had 8
 - Each procedure has one home; `just test-render` fails if a raw `gh`/`fj` command appears outside the `forge` skill, if a skill is missing or its frontmatter is wrong, or if a markdown link is broken.
 - Until the adapters exist, no harness discovers `.agents/skills/` on its own; agents find the skills through the index in AGENTS.md.
 - Projects generated earlier lose three doc files on `copier update`. Copier deletes them even when they were edited locally, without a conflict (tested with an edited `agent-workflow.md`); the README tells users to review the deletion before committing.
-- The `gh` half of the `forge` skill is checked against `gh --help` only.
+- The `forge` skill covers what is actually used: labels everywhere, issue dependencies on Forgejo, issue types on GitHub (via `gh api`). Milestones and GitHub Projects are left out; a project that uses Projects documents its fields in its own `docs/project-management.md` and links it from its AGENTS.md.
+- The `gh` half of the `forge` skill is checked against `gh --help` only; the issue-type API calls were not run.
