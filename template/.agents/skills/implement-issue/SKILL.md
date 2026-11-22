@@ -5,7 +5,12 @@ description: Implement an approved plan on a branch, pass the quality gates, ope
 
 # Implement an issue
 
-Precondition: the issue carries a plan and the human approved it. If not, use `plan-issue` first.
+Precondition, one of:
+
+- the issue carries a plan and the human approved it, or
+- the change is small by the definition in `docs/workflow.md` ("Small changes"), or the human said "no plan needed". Then the issue body is the scope, and the PR body starts with `No plan — small change`. If the work turns out not to be small after all, stop and use `plan-issue`.
+
+Otherwise use `plan-issue` first.
 
 1. **Know the scope.** The plan on the issue and every later comment are the scope.
    - *New session:* read them with `just issue N`. That is the only context you have — do not rely on files in `.ai/`.
@@ -31,6 +36,7 @@ The PR body is the handoff: the next session, the reviewer and the human read it
 
 ```markdown
 Closes #N            <!-- or: Part of #N -->
+<!-- small change without a posted plan: add the line "No plan — small change" -->
 
 ## What changed
 ## How it was verified
@@ -46,6 +52,8 @@ Check CI with `just pr-view N` once it has run and say in your report whether it
 ## After review
 
 Address review comments with further commits on the same branch and push. If the changes make the body wrong, rewrite it and run `just pr-body N .ai/forge/pr-N.md`. Answer comments with `just comment-pr N FILE`.
+
+If a review comment states a rule that applies beyond this PR ("we never do X here"), make it permanent in the same PR: add it to the doc or skill it belongs to (`docs/codestyle.md`, `docs/workflow.md`, a skill), so the next session does not repeat the mistake.
 
 ## If the session ends before there is a PR
 

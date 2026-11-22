@@ -4,9 +4,9 @@ Agent entry point. Read this, then only the skill and the docs your task needs.
 
 ## Rules
 
-1. **Every change belongs to an issue.** Post the plan as a comment on the issue and wait for the human's go before editing any file.
+1. **Every change belongs to an issue.** Post the plan as a comment on the issue and wait for the human's go before editing any file. A *small change* needs no plan — the issue is the plan; the definition is in [docs/workflow.md](docs/workflow.md#small-changes).
 2. **Never commit to `main`, never merge.** Work on a branch, open a PR, stop. The human reviews and merges.
-3. **Everything goes through `just`** — `just --list` shows the recipes. Do not call `ruff`, `pyright`, `pytest` or `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly. `just check` passes before a PR is opened.
+3. **Everything goes through `just`** — `just --list` shows the recipes. Do not call `ruff`, `pyright`, `pytest` or `{% if platform == 'github' %}gh{% else %}fj{% endif %}` directly. `just check` passes before a PR is opened. If a recipe fails on a missing or outdated tool, run `just doctor`.
 4. **No plaintext secrets in any file.**
 {%- if secrets == 'sops' %} Secrets are SOPS-encrypted files in the repo; edit them with `sops <file>`.
 {%- elif secrets == 'env-only' %} Secrets come from `.env` (gitignored; copy `.env.example`). Never commit it.

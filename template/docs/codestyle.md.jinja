@@ -5,32 +5,12 @@ Code and test conventions. Process and quality gates are in [workflow.md](workfl
 
 ## Python
 
-Enforced by ruff and pyright in CI. Configuration lives in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}`.
-
-Run `just fix` (ruff format + ruff check --fix) before committing or running any quality gate. It handles formatting, import sorting, and safe auto-fixes automatically.
-
-### Formatting
-
-- Line length: 100 characters
-- Quotes: double
-
-### Linting
-
-ruff runs with `select = ["ALL"]` and a blocklist of rules that are noisy or conflict with the formatter. See `lint.ignore` in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}` for the full list. Notable omissions from enforcement: docstring style rules (D/DOC), copyright headers (CPY), todo formatting (TD/FIX).
-
-Tests additionally allow: `S101` (asserts), `ARG002` (unused fixture args), `SLF001` (private access), `PLR2004` (magic values), `INP001` (implicit namespace).
+Formatting, import order, lint rules and typing strictness are enforced by ruff and pyright; their configuration in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}` is the reference, and `just fix` applies what can be applied automatically. This file covers only what no tool checks.
 
 ### Types
 
-- pyright strict mode is enforced. Every public function and method must be fully annotated, including in tests.
-- Prefer `X | None` over `Optional[X]` (Python 3.10+ union syntax).
 - Avoid `Any` unless wrapping untyped third-party code; annotate the boundary explicitly.
-- Use `TypeAlias` for complex type expressions that appear more than once.
-
-### Imports
-
-- Absolute imports only. No relative imports outside of `__init__.py`.
-- Import order managed by ruff/isort: stdlib → third-party → local. Run `just fix` to sort automatically.
+- Use a type alias for complex type expressions that appear more than once.
 
 ### Docstrings
 
@@ -123,4 +103,3 @@ Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 
 - One logical change per commit.
 - No debug code, commented-out blocks, or `TODO` left in committed code (use issues instead).
-- No large binary files (enforced by pre-commit hook).

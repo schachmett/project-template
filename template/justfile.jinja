@@ -49,6 +49,73 @@ static: lint typecheck
 check: static test
 {%- endif %}
 
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+# Check that the required tools are installed, recent enough and logged in
+doctor:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    problems=0
+    problem() { echo "problem: $*" >&2; problems=$((problems + 1)); }
+    need() { # need TOOL [MINIMUM-VERSION]
+        if ! command -v "$1" >/dev/null 2>&1; then
+            problem "$1 is not installed — run scripts/setup.sh"
+            return 1
+        fi
+        [ -n "${2:-}" ] || return 0
+        local have
+        # fj has a `version` subcommand instead of `--version`.
+        have=$({ "$1" --version 2>/dev/null || "$1" version 2>/dev/null; } | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+        if [ "$(printf '%s\n%s\n' "$2" "$have" | sort -V | head -n 1)" != "$2" ]; then
+            problem "$1 is $have, need $2 or newer — run scripts/setup.sh"
+            return 1
+        fi
+    }
+    need git
+    need uv
+{%- if hooks != 'none' %}
+    need pre-commit
+    [ -f .git/hooks/pre-commit ] || problem "pre-commit hooks are not installed — run 'pre-commit install'"
+{%- endif %}
+    if ! git remote get-url origin >/dev/null 2>&1; then
+        problem "no 'origin' remote"
+{%- if platform == 'github' %}
+    elif need gh 2.105.0; then
+        gh auth status >/dev/null 2>&1 || problem "gh is not logged in — set GH_TOKEN or run 'gh auth login'"
+    fi
+{%- else %}
+    elif need fj 0.7.0; then
+        host=$(just _forge-host)
+        fj auth list 2>/dev/null | grep -qxF "$host" ||
+            problem "fj is not logged in to $host — run scripts/setup.sh with FORGEJO_TOKEN set, or 'fj -H $host auth login'"
+    fi
+{%- endif %}
+    if [ "$problems" -gt 0 ]; then exit 1; fi
+    echo "all tools present"
+{%- if platform == 'github' %}
+
+# Protect main for non-admins: no direct pushes, merging needs one approving review (run once, as admin)
+forge-protect:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # gh has no command for branch protection, so this is the one recipe that calls the API.
+    gh api -X PUT "repos/{owner}/{repo}/branches/main/protection" --input - >/dev/null <<'JSON'
+    {
+      "required_status_checks": null,
+      "enforce_admins": false,
+      "required_pull_request_reviews": { "required_approving_review_count": 1 },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false
+    }
+    JSON
+    echo "main is protected for non-admins: pull requests only, one approving review"
+{%- else %}
+
+# There is no forge-protect recipe: fj 0.7.0 cannot manage branch protection.
+# Protect main by hand in the repository settings — see docs/workflow.md, "Enforcement".
+{%- endif %}
+
 # ── Forge ─────────────────────────────────────────────────────────────────────
 # Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
 {%- if platform != 'github' %}
@@ -80,13 +147,26 @@ issue N:
     fj -H "$(just _forge-host)" issue block list "$1"
 {%- endif %}
 
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+# Open a new issue with the body from FILE; `type/<Name>` sets the issue type, anything else is a label
+{%- else %}
 # Open a new issue with the body from FILE and, optionally, labels
+{%- endif %}
 issue-new TITLE FILE *LABELS:
     #!/usr/bin/env bash
     set -euo pipefail
     title="$1" file="$2"
     shift 2
-{%- if platform == 'github' %}
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+    args=()
+    for label in "$@"; do
+        case "$label" in
+            type/*) args+=(--type "$(printf '%s' "$label" | cut -d/ -f2-)") ;;
+            *) args+=(--label "$label") ;;
+        esac
+    done
+    gh issue create --title "$title" --body-file "$file" "${args[@]}"
+{%- elif platform == 'github' %}
     labels=$(IFS=,; echo "$*")
     gh issue create --title "$title" --body-file "$file" ${labels:+--label "$labels"}
 {%- else %}
@@ -120,7 +200,7 @@ issue-unlabel N +LABELS:
 {%- endif %}
 {%- if platform == 'github' and github_owner_type == 'organization' %}
 
-# Set the issue type of issue N (a type defined by the organisation, e.g. Bug)
+# Change the issue type of issue N (a type defined by the organisation, e.g. Bug)
 issue-type N TYPE:
     gh issue edit "$1" --type "$2"
 {%- endif %}

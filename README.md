@@ -50,6 +50,7 @@ The template is Python-only: every generated project has a Python package, eithe
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
+├── scripts/setup.sh             # installs the tools on a clean machine / cloud agent environment
 ├── justfile                     # quality recipes; forge recipes: issues, labels, relations, PRs, releases
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)

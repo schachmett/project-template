@@ -11,10 +11,11 @@ just test-render
 Renders every platform × python × is_service combination with `uvx copier` — GitHub once per `github_owner_type` — and checks, for each:
 
 - `just --list` parses the rendered justfile
-- `just --dry-run` resolves every forge recipe; `issue-parent` exists on GitHub only, `issue-type` only for GitHub organisations, and `type/` labels everywhere else
+- `just --dry-run` resolves every forge recipe; `issue-parent` and `forge-protect` exist on GitHub only, `issue-type` only for GitHub organisations, and `type/` labels everywhere else
 - the justfile calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
 - `scripts/check_render.py`: the four skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; no raw `gh`/`fj` command appears in any markdown file
+- `scripts/setup.sh` is executable and parses (`bash -n`)
 - every file ends with exactly one newline and has no trailing whitespace
 - `.pre-commit-config.yaml` loads (`pre-commit validate-config`)
 - detect-secrets 1.5.0 reports nothing in the fresh project, apart from the excluded answers file (see [ADR 005](adr/005-detect-secrets-without-baseline.md))
@@ -38,6 +39,8 @@ When a question or choice is added, extend the matrix in `scripts/test-render.sh
 3. Use a title with `"quotes"` and `$HOME` at least once.
 4. Check the four `release` guards: not on `main`, malformed version, dirty tree, `main` ahead of `origin/main`.
 5. For fj, repeat a few recipes from a branch without upstream in a clone with a second remote — plain `fj` fails there (see [ADR 001](adr/001-just-is-the-forge-interface.md)).
+
+`scripts/setup.sh` is tested by running it in the scratch clone with an empty `HOME` and `PATH=/usr/bin:/bin`: it must install the tools into `$HOME/.local/bin` and end with `just doctor` reporting only the missing login. `just doctor` is tested with a stub tool that reports an old version.
 
 The gh recipes cannot be run without a GitHub scratch repo. Check their argument handling with a stub `gh` on `PATH` that prints its arguments.
 

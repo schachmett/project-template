@@ -47,3 +47,5 @@ What becomes easier or harder as a result?
 - [007: Procedures are skills, docs explain why](007-procedures-are-skills.md)
 - [008: Plan and handoff live in the issue and the PR](008-state-lives-in-issue-and-pr.md)
 - [009: Type and priority labels, native relations, all through recipes](009-labels-and-relations.md)
+- [010: Small changes skip the plan gate](010-small-changes-skip-the-plan-gate.md)
+- [011: Setup script, `just doctor`, and branch protection as after-copy steps](011-setup-doctor-and-branch-protection.md)

@@ -40,7 +40,7 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
 
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 
-    for recipe in "issues" "issues some query" "issue 1" "issue-new Title body.md" \
+    for recipe in "doctor" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
         "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
         "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
         "issue-close 1 body.md" "labels" "labels-init" \
@@ -59,6 +59,9 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     has() { (cd "$dest" && just --dry-run "$@" >/dev/null 2>&1) && echo yes || echo no; }
     [ "$(has issue-parent 2 1)" = "$want_parent" ] || fail "issue-parent: expected $want_parent"
     [ "$(has issue-type 1 Bug)" = "$want_type" ] || fail "issue-type: expected $want_type"
+    # fj cannot manage branch protection, so forge-protect exists on GitHub only.
+    [ "$(has forge-protect)" = "$want_parent" ] || fail "forge-protect: expected $want_parent"
+    [ -x "$dest/scripts/setup.sh" ] && bash -n "$dest/scripts/setup.sh" || fail "scripts/setup.sh"
     if grep -q "type/bug" "$dest/justfile" "$dest/docs/workflow.md"; then
         [ "$want_type" = no ] || fail "type/ labels in an organisation project"
     else
