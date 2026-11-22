@@ -54,17 +54,33 @@ When you find a bug, open an issue before or alongside the fix. Nothing gets fix
 
 **Body**, as sections: **Context** (what is the case today and why it is a problem), **Target** (the state after the issue is done, concrete enough to review against), **Why** (so the priority can be questioned later), **Notes** (links, open points). A research issue has **Done when** instead of Target: where the answer is decided and which document takes the result. The body is a brief, not a diary — discussion happens in comments.
 
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+
+**Type.** This repository belongs to an organisation, so every issue has exactly one native issue type — not a `type/` label. The organisation defines which types exist; set one right after creating the issue:
+
+```bash
+just issue-new "Title" .ai/forge/issue.md     # prints the new issue number
+just issue-type N Bug
+```
+
+GitHub's default types are `Bug`, `Feature` and `Task`. If the organisation defines more (research, epic, operations, …), `docs/project-management.md` lists them and what they mean.
+
+**Labels.** `prio/high` and `prio/low` are optional; no label means normal priority. `just labels-init` creates them once per repository, and they can be passed at creation: `just issue-new TITLE FILE prio/high`.
+{%- else %}
+
 **Labels.** Every issue has exactly one `type/` label, set at creation (`just issue-new TITLE FILE type/bug`). `just labels-init` creates the set once per repository.
 
 | Label | Use it for |
 |---|---|
 | `type/bug` | Behaviour that is wrong today |
 | `type/feature` | Something the software should do and does not do yet, or should do differently |
-| `type/task` | Work that changes no behaviour: docs, tooling, housekeeping, setup |
+| `type/task` | Work that changes no behaviour: tooling, housekeeping, setup |
+| `type/docs` | Documentation only |
 | `type/research` | A question to answer before work can be planned |
 | `type/epic` | A parent that groups issues towards one outcome; carries no work itself |
 | `type/operations` | Manual work outside the code: delivery, deployments, related systems, administration |
 | `prio/high`, `prio/low` | Optional. No label means normal priority |
+{%- endif %}
 
 `area/<component>` labels are added per project when needed. There are no status labels: open/closed, the linked PR and the relations below say where an issue stands.
 
@@ -73,7 +89,6 @@ When you find a bug, open an issue before or alongside the fix. Nothing gets fix
 - `just issue-blocked-by N BLOCKER` — N cannot be finished before BLOCKER. A real dependency, not "nice to have first". `just issue-unblock` removes it.
 {%- if platform == 'github' %}
 - `just issue-parent N PARENT` — N is a sub-issue of an epic. One parent per issue; the epic's body says what "done" means for the whole.
-- In an organisation with issue types, `just issue-type N TYPE` sets the native type as well.
 {%- else %}
 - Forgejo has no sub-issues: an epic is blocked by each of its parts (`just issue-blocked-by EPIC PART`), and its body says what "done" means for the whole.
 {%- endif %}

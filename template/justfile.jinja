@@ -118,11 +118,13 @@ issue-unlabel N +LABELS:
 {%- else %}
     n="$1"; shift; for l in "$@"; do set -- "$@" --rm "$l"; shift; done; fj -H "$(just _forge-host)" issue edit "$n" labels "$@"
 {%- endif %}
-{%- if platform == 'github' %}
+{%- if platform == 'github' and github_owner_type == 'organization' %}
 
-# Set the issue type of issue N (organisation repositories only)
+# Set the issue type of issue N (a type defined by the organisation, e.g. Bug)
 issue-type N TYPE:
     gh issue edit "$1" --type "$2"
+{%- endif %}
+{%- if platform == 'github' %}
 
 # Make issue N a sub-issue of PARENT
 issue-parent N PARENT:
@@ -174,7 +176,7 @@ labels:
     fj -H "$(just _forge-host)" repo labels view
 {%- endif %}
 
-# Create the standard labels (type/*, prio/*); existing ones are kept
+# Create the standard labels; existing ones are kept
 labels-init:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -194,12 +196,15 @@ labels-init:
         fi
 {%- endif %}
     done <<'LABELS'
+{%- if not (platform == 'github' and github_owner_type == 'organization') %}
     type/bug|d73a4a|Behaviour that is wrong today
     type/feature|0e8a16|Something the software should do and does not do yet, or should do differently
-    type/task|c5def5|Work that changes no behaviour: docs, tooling, housekeeping, setup
+    type/task|c5def5|Work that changes no behaviour: tooling, housekeeping, setup
+    type/docs|0075ca|Documentation only
     type/research|d4c5f9|A question to answer before work can be planned
     type/epic|5319e7|A parent that groups issues towards one outcome; carries no work itself
     type/operations|fbca04|Manual work outside the code: delivery, deployments, related systems, administration
+{%- endif %}
     prio/high|b60205|Before everything that is not labelled
     prio/low|c2e0c6|Agreed, not scheduled
     LABELS

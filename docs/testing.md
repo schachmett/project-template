@@ -8,10 +8,10 @@ The template has no unit tests. It is tested by rendering it and checking the re
 just test-render
 ```
 
-Renders every platform × python × is_service combination with `uvx copier` and checks, for each:
+Renders every platform × python × is_service combination with `uvx copier` — GitHub once per `github_owner_type` — and checks, for each:
 
 - `just --list` parses the rendered justfile
-- `just --dry-run` resolves every forge recipe; `issue-type` and `issue-parent` exist on GitHub only
+- `just --dry-run` resolves every forge recipe; `issue-parent` exists on GitHub only, `issue-type` only for GitHub organisations, and `type/` labels everywhere else
 - the justfile calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
 - `scripts/check_render.py`: the four skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; no raw `gh`/`fj` command appears in any markdown file

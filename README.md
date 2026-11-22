@@ -19,6 +19,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `platform` | choice | `forgejo` | `forgejo` / `github` / `both` |
 | `forgejo_url` | str | — | Asked when platform ≠ github |
 | `org` | str | — | GitHub/Forgejo org or username |
+| `github_owner_type` | choice | `personal` | `personal` / `organization`. Asked when platform = github; organizations use native issue types, everything else `type/` labels |
 | `python` | choice | `root` | `root` / `component` |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
 | `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml` |

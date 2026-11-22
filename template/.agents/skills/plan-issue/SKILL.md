@@ -9,9 +9,9 @@ description: Turn an issue into an implementation plan, post it as a comment on 
 
    If the task has no issue, write one first. Title, body sections, labels and relations are described under "Issues" in `docs/workflow.md`. Body to `.ai/forge/issue.md`, then
 
-   `just issue-new "Title" .ai/forge/issue.md type/<type> [prio/<prio>]`
+   `just issue-new "Title" .ai/forge/issue.md [LABEL…]`
 
-   and record what it depends on with `just issue-blocked-by N BLOCKER`.
+   Give it its type the way that section says for this repository, and record what it depends on with `just issue-blocked-by N BLOCKER`.
 2. **Read what the task touches.** The docs listed in `AGENTS.md` that are relevant, the ADRs for the area, and the code you expect to change. Do not read everything.
 3. **Write the plan** to `.ai/forge/plan-N.md`:
    - what changes, file by file, and why

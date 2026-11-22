@@ -25,15 +25,16 @@ fail() {
     failures=$((failures + 1))
 }
 
-render() { # render DEST PLATFORM PYTHON IS_SERVICE
+render() { # render DEST PLATFORM PYTHON IS_SERVICE [GITHUB_OWNER_TYPE]
     "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
         -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
+        -d github_owner_type="${5:-personal}" \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
-check() { # check DEST PLATFORM
+check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     local dest=$1 platform=$2 cli other recipe
     if [ "$platform" = github ]; then cli=gh other=fj; else cli=fj other=gh; fi
 
@@ -50,15 +51,19 @@ check() { # check DEST PLATFORM
         (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
     done
 
-    # Sub-issues and issue types exist on GitHub only.
-    for recipe in "issue-type 1 Bug" "issue-parent 2 1"; do
-        # shellcheck disable=SC2086
-        if (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1); then
-            [ "$platform" = github ] || fail "just $recipe exists on $platform"
-        else
-            [ "$platform" != github ] || fail "just --dry-run $recipe"
-        fi
-    done
+    # Sub-issues exist on GitHub only; native issue types only for organisations,
+    # which get no type/ labels in return.
+    local owner=${3:-personal} want_parent=no want_type=no
+    [ "$platform" != github ] || want_parent=yes
+    if [ "$platform" = github ] && [ "$owner" = organization ]; then want_type=yes; fi
+    has() { (cd "$dest" && just --dry-run "$@" >/dev/null 2>&1) && echo yes || echo no; }
+    [ "$(has issue-parent 2 1)" = "$want_parent" ] || fail "issue-parent: expected $want_parent"
+    [ "$(has issue-type 1 Bug)" = "$want_type" ] || fail "issue-type: expected $want_type"
+    if grep -q "type/bug" "$dest/justfile" "$dest/docs/workflow.md"; then
+        [ "$want_type" = no ] || fail "type/ labels in an organisation project"
+    else
+        [ "$want_type" = yes ] || fail "type/ labels missing"
+    fi
 
     grep -q "^ *\(if .*; then \)\?$cli " "$dest/justfile" || fail "justfile does not call $cli"
     if grep -n "^ *$other " "$dest/justfile"; then fail "justfile calls $other"; fi
@@ -94,6 +99,13 @@ for platform in forgejo github both; do
             echo "== $name"
             if render "$work/$name" "$platform" "$python" "$is_service"; then
                 check "$work/$name" "$platform"
+            else
+                fail "copier copy"
+            fi
+            [ "$platform" = github ] || continue
+            echo "== $name (organization)"
+            if render "$work/$name-org" "$platform" "$python" "$is_service" organization; then
+                check "$work/$name-org" "$platform" organization
             else
                 fail "copier copy"
             fi

@@ -86,6 +86,15 @@ org:
   help: "GitHub/Forgejo organization or username (used in remote URLs)"
   default: ""
 
+github_owner_type:
+  type: str
+  help: "Is that GitHub owner an organization or a personal account? Organizations have native issue types; personal accounts get type/ labels instead"
+  choices:
+    - personal
+    - organization
+  default: personal
+  when: "{{ platform == 'github' }}"
+
 python:
   type: str
   help: "Python layout: root (project at the repo root) or component (under backend/)"
