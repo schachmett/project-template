@@ -29,6 +29,18 @@ The merge gate should not depend on the agent's cooperation. Two things on {% if
 - **Backstops in the repo:** {% if hooks != 'none' %}the `no-commit-to-main` pre-commit hook blocks local commits on `main`, and {% endif %}CI runs `just check` on every push and pull request.
 
 There is no merge recipe in the `justfile`. The plan gate stays a convention; the `plan-issue` skill carries it out.
+{%- if agents %}
+
+### Agent adapters
+
+`AGENTS.md` and `.agents/skills/` are the tool-neutral core. On top of them this project has thin adapters for {% if 'claude' in agents %}Claude Code (`CLAUDE.md`, `.claude/`){% endif %}{% if 'claude' in agents and 'codex' in agents %} and {% endif %}{% if 'codex' in agents %}Codex (`.codex/`, loaded once the project is trusted in Codex){% endif %}. An adapter does three things and contains no logic of its own: it makes the skills discoverable, refuses the obvious commands for merging a PR or pushing to `main`, and runs `just stop-check` when the agent stops — lint and typecheck if the working tree has changes, with failures handed back to the agent.
+
+The refused commands are matched by their text, so they stop a slip, not a determined agent. The gate is the branch protection above.
+{%- endif %}
+
+### Second-agent review
+
+`just review N` hands PR N to a second agent with the `review-pr` skill and posts what it prints as a PR comment. The reviewer is the command in `AGENT_REVIEWER` — anything that reads a prompt on stdin and prints an answer{% if agents %}; without it, `{% if 'claude' in agents %}claude -p{% else %}codex exec -{% endif %}` is used{% endif %}. A reviewer on a different model than the author finds more. `just mddiff` shows a word-level diff of the Markdown files a branch changes, which reads better than a line diff for prose.
 
 ## Where information lives
 

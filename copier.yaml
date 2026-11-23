@@ -2,6 +2,7 @@ _subdirectory: template
 _templates_suffix: .jinja
 _min_copier_version: "9.0"
 _answers_file: .copier-answers.yml
+_preserve_symlinks: true
 
 _exclude:
   # Conditional docs
@@ -20,6 +21,10 @@ _exclude:
   # Conditional CD (only if is_service)
   - "{% if not is_service %}.forgejo/workflows/cd.yml{% endif %}"
   - "{% if not is_service %}.github/workflows/cd.yml{% endif %}"
+  # Agent adapters
+  - "{% if 'claude' not in agents %}CLAUDE.md{% endif %}"
+  - "{% if 'claude' not in agents %}.claude{% endif %}"
+  - "{% if 'codex' not in agents %}.codex{% endif %}"
   # Conditional pre-commit
   - "{% if hooks == 'none' %}.pre-commit-config.yaml{% endif %}"
   # Conditional Dockerfile (only if is_service)
@@ -162,6 +167,15 @@ component_dir:
   help: "Subdirectory name for the Python component (only when python=component)"
   default: "backend"
   when: "{{ python == 'component' }}"
+
+agents:
+  type: str
+  help: "Agent tools to generate adapters for (deny rules, hooks, skill discovery). AGENTS.md and .agents/skills are always generated"
+  multiselect: true
+  choices:
+    - claude
+    - codex
+  default: [claude]
 
 # ── Computed variables (never asked) ──────────────────────────────────────────
 

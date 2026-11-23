@@ -1,0 +1,47 @@
+# Commands the agent must not run. Merging and pushing to main are the human's.
+# Loaded only when this project is trusted in Codex. These rules match command
+# text; the real gate is branch protection on the forge (docs/workflow.md).
+{% if platform == 'github' -%}
+prefix_rule(
+    pattern = ["gh", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Pull requests are merged by the human.",
+    match = ["gh pr merge 12"],
+    not_match = ["gh pr view 12"],
+)
+{%- else -%}
+prefix_rule(
+    pattern = ["fj", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Pull requests are merged by the human.",
+    match = ["fj pr merge 12"],
+    not_match = ["fj pr view 12"],
+)
+
+{%- set forge_host = forgejo_url | replace('https://', '') | replace('http://', '') %}
+
+# The recipes call fj with the host pinned; a prefix rule cannot skip over it.
+prefix_rule(
+    pattern = ["fj", "-H", "{{ forge_host }}", "pr", "merge"],
+    decision = "forbidden",
+    justification = "Pull requests are merged by the human.",
+    match = ["fj -H {{ forge_host }} pr merge 12"],
+    not_match = ["fj -H {{ forge_host }} pr view 12"],
+)
+{%- endif %}
+
+prefix_rule(
+    pattern = ["git", "push", "origin", "main"],
+    decision = "forbidden",
+    justification = "Push a feature branch and open a pull request instead.",
+    match = ["git push origin main"],
+    not_match = ["git push origin feat/x"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "origin", "HEAD:main"],
+    decision = "forbidden",
+    justification = "Push a feature branch and open a pull request instead.",
+    match = ["git push origin HEAD:main"],
+    not_match = ["git push origin HEAD"],
+)

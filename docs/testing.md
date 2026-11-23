@@ -22,6 +22,8 @@ Renders every platform × python × is_service combination with `uvx copier` —
 
 The projects are rendered with `secrets=env-only`, so `.env.example` is part of what is checked.
 
+After the matrix it renders every `agents` selection (none, claude, codex, both) on Forgejo and GitHub and checks that adapter files exist exactly for the selected agents, that `.claude/skills` is a symlink resolving to the skills, that the JSON files parse, and that the default reviewer in `just review` matches the selection.
+
 Then, for one root and one component project with `hooks=python` and `is_service=true`, it checks that a fresh project passes its own gates: `uv sync`, `just check` (ruff, pyright, pytest with the coverage gate) and `pre-commit run --all-files` on a feature branch. This needs network access to PyPI and to github.com (pre-commit hook repos), and it is what catches drift when a new ruff or pyright release starts rejecting the generated code.
 
 It also appends a stale answer to a rendered project's `.copier-answers.yml` and runs `copier update`, to make sure projects generated before a question was removed still update.
@@ -42,6 +44,8 @@ When a question or choice is added, extend the matrix in `scripts/test-render.sh
 
 `scripts/setup.sh` is tested by running it in the scratch clone with an empty `HOME` and `PATH=/usr/bin:/bin`: it must install the tools into `$HOME/.local/bin` and end with `just doctor` reporting only the missing login. `just doctor` is tested with a stub tool that reports an old version.
 
+The Claude adapter is tested by hand in a rendered project with `claude -p`: the four skills are listed, `git push origin main` and `fj -H <host> pr merge N` are refused, the Stop hook reports a failing `just static` on a dirty tree, and `just review N` posts a review on a scratch PR. The Codex adapter has no test beyond the render checks.
+
 The gh recipes cannot be run without a GitHub scratch repo. Check their argument handling with a stub `gh` on `PATH` that prints its arguments.
 
 Things that look like failures but are not:
@@ -58,6 +62,8 @@ Things that look like failures but are not:
 | forgejo-cli (`fj`) | 0.7.0 | every recipe run against a scratch repo |
 | GitHub CLI (`gh`) | 2.105.0 | flags from `--help`, argument handling with a stub — not run against GitHub. Issue types, sub-issues and blocked-by do not exist in 2.46.0 (Debian's package) |
 | just | 1.40.0 | |
+| Claude Code | 2.1.327 | adapter checked by hand as described above |
+| Codex | — | not installed; adapter written from the docs |
 | detect-secrets | 1.5.0 | hook run over every rendered project; pinned in the generated pre-commit config |
 | git-cliff | from the generated project's dev dependencies | release notes for root and component layout |
 

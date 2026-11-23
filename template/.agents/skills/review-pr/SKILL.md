@@ -25,3 +25,5 @@ You review; you do not fix, approve or merge.
    Report only what you verified in the code. No style remarks that `just fix` would settle.
 5. **Post it:** `just comment-pr N .ai/forge/review-N.md`
 6. **Stop.** The human decides what happens next.
+
+When started through `just review N`, the PR text and diff are already in the prompt and the recipe posts the result: skip steps 1 and 5 and print the review.

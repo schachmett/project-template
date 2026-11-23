@@ -116,6 +116,25 @@ forge-protect:
 # Protect main by hand in the repository settings — see docs/workflow.md, "Enforcement".
 {%- endif %}
 
+# Run by the agents' Stop hooks: lint and typecheck when the working tree has changes
+stop-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    # The hook passes JSON on stdin. When the agent is already continuing because
+    # of this hook, let it stop: one round of feedback, no loop.
+    input=$(timeout 1 cat 2>/dev/null || true)
+    if printf '%s' "$input" | grep -qE '"stop_hook_active" *: *true'; then exit 0; fi
+    [ -n "$(git status --porcelain 2>/dev/null)" ] || exit 0
+    if ! out=$(just static 2>&1); then
+        printf '%s\n' "$out" | tail -n 60 >&2
+        echo "just static fails on the current changes — fix it before stopping" >&2
+        exit 2
+    fi
+
+# Word-level diff of the Markdown files changed since BASE
+mddiff BASE="main":
+    git diff --word-diff=color "$1"...HEAD -- '*.md'
+
 # ── Forge ─────────────────────────────────────────────────────────────────────
 # Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
 {%- if platform != 'github' %}
@@ -339,6 +358,32 @@ pr-body N FILE:
 {%- else %}
     fj -H "$(just _forge-host)" pr edit "$1" body "$(cat "$2")"
 {%- endif %}
+
+# Let a second agent review PR N and post its review as a PR comment
+review N:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # AGENT_REVIEWER is a command that reads a prompt on stdin and prints the answer.
+    reviewer="${AGENT_REVIEWER:-{% if 'claude' in agents %}claude -p{% elif 'codex' in agents %}codex exec -{% endif %}}"
+    if [ -z "$reviewer" ]; then
+        echo "error: set AGENT_REVIEWER to a command that reads a prompt on stdin, e.g. 'claude -p'" >&2
+        exit 1
+    fi
+    mkdir -p .ai/forge
+    out=".ai/forge/review-$1.md"
+    {
+        cat .agents/skills/review-pr/SKILL.md
+        printf '\n---\n\nYou are running headless through `just review`. The pull request is #%s; its text, comments, CI status and diff follow. You may read files in this checkout, which is not necessarily the PR branch. Do not run `just` and do not post anything: print the finished review as Markdown and nothing else.\n\n## Pull request\n\n' "$1"
+        just pr-view "$1" 2>/dev/null
+        printf '\n## Diff\n\n'
+        just pr-diff "$1" 2>/dev/null
+    } | $reviewer >"$out"
+    if [ ! -s "$out" ]; then
+        echo "error: the reviewer printed nothing" >&2
+        exit 1
+    fi
+    { printf '\n\n---\nReviewed by `%s` through `just review`.\n' "$reviewer"; } >>"$out"
+    just comment-pr "$1" "$out"
 
 # Show the diff of PR N
 pr-diff N:

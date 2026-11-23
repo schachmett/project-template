@@ -30,7 +30,7 @@ render() { # render DEST PLATFORM PYTHON IS_SERVICE [GITHUB_OWNER_TYPE]
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
         -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
-        -d github_owner_type="${5:-personal}" \
+        -d github_owner_type="${5:-personal}" -d agents="${AGENTS:-[claude]}" \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
@@ -40,7 +40,7 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
 
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 
-    for recipe in "doctor" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
+    for recipe in "doctor" "stop-check" "mddiff" "mddiff develop" "review 1" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
         "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
         "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
         "issue-close 1 body.md" "labels" "labels-init" \
@@ -116,6 +116,45 @@ for platform in forgejo github both; do
     done
 done
 
+# Adapters are rendered exactly for the selected agents.
+check_agents() { # check_agents DEST "claude codex"
+    local dest=$1 selected=" $2 "
+    if [[ "$selected" == *" claude "* ]]; then
+        [ "$(cat "$dest/CLAUDE.md" 2>/dev/null)" = "@AGENTS.md" ] || fail "CLAUDE.md"
+        [ -L "$dest/.claude/skills" ] && [ -f "$dest/.claude/skills/plan-issue/SKILL.md" ] ||
+            fail ".claude/skills is not a link to the skills"
+        python3 -m json.tool "$dest/.claude/settings.json" >/dev/null 2>&1 || fail ".claude/settings.json"
+        grep -q "just stop-check" "$dest/.claude/settings.json" || fail "Claude Stop hook"
+        grep -q "pr merge" "$dest/.claude/settings.json" || fail "Claude deny rule for merging"
+    else
+        [ ! -e "$dest/CLAUDE.md" ] && [ ! -e "$dest/.claude" ] || fail "Claude adapter rendered without claude"
+    fi
+    if [[ "$selected" == *" codex "* ]]; then
+        python3 -m json.tool "$dest/.codex/hooks.json" >/dev/null 2>&1 || fail ".codex/hooks.json"
+        grep -q "just stop-check" "$dest/.codex/hooks.json" || fail "Codex Stop hook"
+        grep -q '"pr", "merge"' "$dest/.codex/rules/default.rules" || fail "Codex rule for merging"
+    else
+        [ ! -e "$dest/.codex" ] || fail "Codex adapter rendered without codex"
+    fi
+    local expected=""
+    if [[ "$selected" == *" claude "* ]]; then expected="claude -p"; elif [[ "$selected" == *" codex "* ]]; then expected="codex exec -"; fi
+    grep -qF "reviewer=\"\${AGENT_REVIEWER:-$expected}\"" "$dest/justfile" || fail "default reviewer is not '$expected'"
+    python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
+    (cd "$dest" && just --list >/dev/null) || fail "just --list"
+}
+
+for platform in forgejo github; do
+    for selection in "" "claude" "codex" "claude codex"; do
+        name="agents-$platform-${selection// /+}"
+        echo "== $name"
+        if AGENTS="[${selection// /, }]" render "$work/$name" "$platform" root false; then
+            check_agents "$work/$name" "$selection"
+        else
+            fail "copier copy"
+        fi
+    done
+done
+
 # A fresh project must pass its own gates: `just check` and every pre-commit hook.
 for python in root component; do
     echo "== fresh project passes its gates ($python)"
@@ -123,6 +162,7 @@ for python in root component; do
     if "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme -d forgejo_url=https://forge.example.com \
         -d platform=forgejo -d python="$python" -d hooks=python -d is_service=true \
+        -d agents='[claude, codex]' \
         -d secrets=env-only "$src" "$dest" 2>"$work/copier.log"; then
         git -C "$dest" init --quiet --initial-branch feat/fresh
         if [ "$python" = component ]; then pydir="$dest/backend"; else pydir="$dest"; fi
