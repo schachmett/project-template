@@ -50,3 +50,4 @@ What becomes easier or harder as a result?
 - [010: Small changes skip the plan gate](010-small-changes-skip-the-plan-gate.md)
 - [011: Setup script, `just doctor`, and branch protection as after-copy steps](011-setup-doctor-and-branch-protection.md)
 - [012: Thin, generated adapters per agent tool](012-thin-agent-adapters.md)
+- [013: The project owns `justfile`; template-owned files live in `.copier/`](013-project-owns-justfile.md)

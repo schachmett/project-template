@@ -28,7 +28,7 @@ The merge gate should not depend on the agent's cooperation. Two things on {% if
 - **Agents use their own account or token without merge rights:** write access to branches and PRs, no admin rights. Protection binds non-admin accounts; a repository admin can bypass or remove it. An agent that runs with an admin's token is therefore not constrained by it — the gate only holds against a separate, non-admin account. A human who works alone merges their own PRs as admin, since nobody can approve their own PR.
 - **Backstops in the repo:** {% if hooks != 'none' %}the `no-commit-to-main` pre-commit hook blocks local commits on `main`, and {% endif %}CI runs `just check` on every push and pull request.
 
-There is no merge recipe in the `justfile`. The plan gate stays a convention; the `plan-issue` skill carries it out.
+There is no merge recipe. The plan gate stays a convention; the `plan-issue` skill carries it out.
 {%- if agents %}
 
 ### Agent adapters
@@ -69,7 +69,7 @@ When you find a bug, open an issue before or alongside the fix. Nothing gets fix
 
 **Forge operations:** through `just` only; titles are arguments, bodies are files written to `.ai/forge/` first. `just --list` shows what exists.
 
-**Tools:** `scripts/setup.sh` installs everything on a clean Linux machine or in a cloud agent's environment; `just doctor` checks that the tools are present, recent enough ({% if platform == 'github' %}gh ≥ 2.105{% else %}fj ≥ 0.7{% endif %}) and logged in.
+**Tools:** `.copier/setup.sh` installs everything on a clean Linux machine or in a cloud agent's environment; `just doctor` checks that the tools are present, recent enough ({% if platform == 'github' %}gh ≥ 2.105{% else %}fj ≥ 0.7{% endif %}) and logged in.
 
 ## Issues
 
@@ -122,6 +122,12 @@ just issue-new "Title" .ai/forge/issue.md type/Bug
 
 If the repository has a `docs/project-management.md` (a shared project board with its own types and fields), that file takes precedence over this section.
 
+## Template-owned files
+
+This project was generated from a template and is updated from it with `just template-update`. Everything in `.copier/` belongs to the template and is replaced on update: the recipes (`recipes.just`), the setup script, the release-notes config and the recorded answers. Do not edit files there.
+
+The root `justfile` belongs to the project. It imports the template's recipes; project recipes go there, and a recipe defined there replaces a template recipe of the same name. Mind that this also hides a template recipe added later under that name.
+
 ## Quality gates
 
 ```bash
@@ -171,6 +177,6 @@ A change is ready to merge when:
 
 Releases are cut from `main` with `just release vX.Y.Z` ([semver](https://semver.org/)), on the human's request; the procedure is the `release` skill.
 
-The recipe refuses to run unless it is on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `cliff.toml`) and creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The tag triggers the CD workflow{% if is_service %}, which builds and pushes the Docker image{% endif %}.
+The recipe refuses to run unless it is on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `.copier/cliff.toml`) and creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The tag triggers the CD workflow{% if is_service %}, which builds and pushes the Docker image{% endif %}.
 
 There is no `CHANGELOG.md`: the release pages are the changelog (`just releases`), so a release needs no commit and no PR.

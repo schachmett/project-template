@@ -39,8 +39,12 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     if [ "$platform" = github ]; then cli=gh other=fj; else cli=fj other=gh; fi
 
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
+    grep -qxF "import '.copier/recipes.just'" "$dest/justfile" || fail "root justfile does not import the template recipes"
+    [ "$(cd "$dest" && just --dry-run 2>&1)" = "just --list" ] || fail "a bare 'just' does not list the recipes"
+    [ ! -e "$dest/.copier-answers.yml" ] && [ -f "$dest/.copier/answers.yml" ] || fail "answers file is not in .copier/"
+    [ -f "$dest/.copier/cliff.toml" ] && [ ! -e "$dest/cliff.toml" ] || fail "cliff.toml is not in .copier/"
 
-    for recipe in "doctor" "stop-check" "mddiff" "mddiff develop" "review 1" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
+    for recipe in "template-update" "doctor" "stop-check" "mddiff" "mddiff develop" "review 1" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
         "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
         "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
         "issue-close 1 body.md" "labels" "labels-init" \
@@ -61,15 +65,15 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     [ "$(has issue-type 1 Bug)" = "$want_type" ] || fail "issue-type: expected $want_type"
     # fj cannot manage branch protection, so forge-protect exists on GitHub only.
     [ "$(has forge-protect)" = "$want_parent" ] || fail "forge-protect: expected $want_parent"
-    [ -x "$dest/scripts/setup.sh" ] && bash -n "$dest/scripts/setup.sh" || fail "scripts/setup.sh"
-    if grep -q "type/bug" "$dest/justfile" "$dest/docs/workflow.md"; then
+    [ -x "$dest/.copier/setup.sh" ] && bash -n "$dest/.copier/setup.sh" || fail ".copier/setup.sh"
+    if grep -q "type/bug" "$dest/.copier/recipes.just" "$dest/docs/workflow.md"; then
         [ "$want_type" = no ] || fail "type/ labels in an organisation project"
     else
         [ "$want_type" = yes ] || fail "type/ labels missing"
     fi
 
-    grep -q "^ *\(if .*; then \)\?$cli " "$dest/justfile" || fail "justfile does not call $cli"
-    if grep -n "^ *$other " "$dest/justfile"; then fail "justfile calls $other"; fi
+    grep -q "^ *\(if .*; then \)\?$cli " "$dest/.copier/recipes.just" || fail "justfile does not call $cli"
+    if grep -n "^ *$other " "$dest/.copier/recipes.just"; then fail "justfile calls $other"; fi
 
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
 
@@ -90,7 +94,7 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     # detect-secrets (pre-commit itself excludes the answers file).
     (cd "$dest" && uvx pre-commit validate-config .pre-commit-config.yaml >/dev/null) ||
         fail "invalid .pre-commit-config.yaml"
-    (cd "$dest" && find . -type f -not -name .copier-answers.yml -print0 |
+    (cd "$dest" && find . -type f -not -path ./.copier/answers.yml -print0 |
         xargs -0 uvx --from detect-secrets==1.5.0 detect-secrets-hook) ||
         fail "detect-secrets reports findings in a fresh project"
 }
@@ -138,7 +142,7 @@ check_agents() { # check_agents DEST "claude codex"
     fi
     local expected=""
     if [[ "$selected" == *" claude "* ]]; then expected="claude -p"; elif [[ "$selected" == *" codex "* ]]; then expected="codex exec -"; fi
-    grep -qF "reviewer=\"\${AGENT_REVIEWER:-$expected}\"" "$dest/justfile" || fail "default reviewer is not '$expected'"
+    grep -qF "reviewer=\"\${AGENT_REVIEWER:-$expected}\"" "$dest/.copier/recipes.just" || fail "default reviewer is not '$expected'"
     python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
 }
@@ -182,14 +186,20 @@ done
 echo "== update with stale workflow_style answer"
 dest="$work/stale-answer"
 if render "$dest" forgejo root false; then
-    echo "workflow_style: direct" >>"$dest/.copier-answers.yml"
+    echo "workflow_style: direct" >>"$dest/.copier/answers.yml"
+    # The root justfile is the project's: an update must leave its changes alone,
+    # and a recipe defined there must win over the template's.
+    printf '\ncheck:\n    @echo project-check\n' >>"$dest/justfile"
     git -C "$dest" init --quiet
     git -C "$dest" add -A
     git -C "$dest" -c user.name=test -c user.email=test@example.com \
         commit --quiet --no-verify -m "initial"
-    (cd "$dest" && "${copier[@]}" update --quiet --defaults --vcs-ref HEAD >"$work/update.log" 2>&1) ||
+    (cd "$dest" && just template-update --quiet --defaults --vcs-ref HEAD >"$work/update.log" 2>&1) ||
         { cat "$work/update.log" >&2; fail "copier update"; }
     if find "$dest" -name '*.rej' | grep -q .; then fail "copier update left .rej files"; fi
+    grep -q "project-check" "$dest/justfile" || fail "update overwrote the project's justfile"
+    [ "$(cd "$dest" && just check 2>/dev/null)" = "project-check" ] || fail "project recipe does not override the template's"
+    if grep -q workflow_style "$dest/.copier/answers.yml"; then fail "stale answer survived the update"; fi
 else
     fail "copier copy"
 fi
