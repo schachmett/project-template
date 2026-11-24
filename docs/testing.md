@@ -10,12 +10,12 @@ just test-render
 
 Renders every platform × python × is_service combination with `uvx copier` — GitHub once per `github_owner_type` — and checks, for each:
 
-- `just --list` parses the rendered justfile
+- `just --list` parses the rendered justfile, the root file imports `.copier/recipes.just`, and the answers file and `cliff.toml` are in `.copier/`
 - `just --dry-run` resolves every forge recipe; `issue-parent` and `forge-protect` exist on GitHub only, `issue-type` only for GitHub organisations, and `type/` labels everywhere else
-- the justfile calls the CLI of its platform and not the other one
+- the recipes file calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
 - `scripts/check_render.py`: the four skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; no raw `gh`/`fj` command appears in any markdown file
-- `scripts/setup.sh` is executable and parses (`bash -n`)
+- `.copier/setup.sh` is executable and parses (`bash -n`)
 - every file ends with exactly one newline and has no trailing whitespace
 - `.pre-commit-config.yaml` loads (`pre-commit validate-config`)
 - detect-secrets 1.5.0 reports nothing in the fresh project, apart from the excluded answers file (see [ADR 005](adr/005-detect-secrets-without-baseline.md))
@@ -26,7 +26,7 @@ After the matrix it renders every `agents` selection (none, claude, codex, both)
 
 Then, for one root and one component project with `hooks=python` and `is_service=true`, it checks that a fresh project passes its own gates: `uv sync`, `just check` (ruff, pyright, pytest with the coverage gate) and `pre-commit run --all-files` on a feature branch. This needs network access to PyPI and to github.com (pre-commit hook repos), and it is what catches drift when a new ruff or pyright release starts rejecting the generated code.
 
-It also appends a stale answer to a rendered project's `.copier-answers.yml` and runs `copier update`, to make sure projects generated before a question was removed still update.
+It also appends a stale answer to a rendered project's `.copier/answers.yml`, adds a `check` recipe to its root `justfile`, and runs `just template-update`: the update must drop the stale answer, leave the root `justfile` alone, and the project's `check` must win over the template's. This makes sure projects generated before a question was removed still update.
 
 The script renders from a snapshot of `copier.yaml`, `template/` and `_shared/` as they are in the working tree — committed or not. Rendering the repo directly makes copier run `git add -A` on a dirty tree, which picks up (and can fail on) unrelated untracked files.
 
@@ -42,7 +42,7 @@ When a question or choice is added, extend the matrix in `scripts/test-render.sh
 4. Check the four `release` guards: not on `main`, malformed version, dirty tree, `main` ahead of `origin/main`.
 5. For fj, repeat a few recipes from a branch without upstream in a clone with a second remote — plain `fj` fails there (see [ADR 001](adr/001-just-is-the-forge-interface.md)).
 
-`scripts/setup.sh` is tested by running it in the scratch clone with an empty `HOME` and `PATH=/usr/bin:/bin`: it must install the tools into `$HOME/.local/bin` and end with `just doctor` reporting only the missing login. `just doctor` is tested with a stub tool that reports an old version.
+`.copier/setup.sh` is tested by running it in the scratch clone with an empty `HOME` and `PATH=/usr/bin:/bin`: it must install the tools into `$HOME/.local/bin` and end with `just doctor` reporting only the missing login. `just doctor` is tested with a stub tool that reports an old version.
 
 The Claude adapter is tested by hand in a rendered project with `claude -p`: the four skills are listed, `git push origin main` and `fj -H <host> pr merge N` are refused, the Stop hook reports a failing `just static` on a dirty tree, and `just review N` posts a review on a scratch PR. The Codex adapter has no test beyond the render checks.
 

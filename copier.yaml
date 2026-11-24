@@ -1,7 +1,10 @@
 _subdirectory: template
 _templates_suffix: .jinja
 _min_copier_version: "9.0"
-_answers_file: .copier-answers.yml
+_answers_file: .copier/answers.yml
+_skip_if_exists:
+  # Created once, then owned by the project
+  - justfile
 _preserve_symlinks: true
 
 _exclude:
@@ -67,7 +70,9 @@ _message_after_copy: |
     Give agents their own account or token with write access but without admin
     or merge rights.
 
-  On another machine or in a cloud agent environment: scripts/setup.sh
+  On another machine or in a cloud agent environment: .copier/setup.sh
+
+  Update to a newer template later with: just template-update
   {%- if platform == 'both' %}
     git push github main
   {%- endif %}

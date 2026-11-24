@@ -1,0 +1,451 @@
+# Template recipes — owned by the project template and replaced by `just template-update`.
+# Do not edit: put project recipes, and overrides of these, in the root justfile.
+set positional-arguments
+{% if python == 'component' %}
+# Auto-format and fix imports
+fix:
+    cd {{ component_dir }} && uv run ruff format
+    cd {{ component_dir }} && uv run ruff check --fix
+
+# Format check + ruff lint (no typecheck)
+lint:
+    cd {{ component_dir }} && uv run ruff format --check
+    cd {{ component_dir }} && uv run ruff check
+
+# Type checking
+typecheck:
+    cd {{ component_dir }} && uv run pyright
+
+# Run tests with coverage
+test:
+    cd {{ component_dir }} && uv run pytest --cov --cov-report=term --cov-report=html
+
+# Static analysis: lint + typecheck, no tests
+static: lint typecheck
+
+# Full CI suite
+check: static test
+{%- else %}
+# Auto-format and fix imports
+fix:
+    uv run ruff format
+    uv run ruff check --fix
+
+# Format check + ruff lint (no typecheck)
+lint:
+    uv run ruff format --check
+    uv run ruff check
+
+# Type checking
+typecheck:
+    uv run pyright
+
+# Run tests with coverage
+test:
+    uv run pytest --cov --cov-report=term --cov-report=html
+
+# Static analysis: lint + typecheck, no tests
+static: lint typecheck
+
+# Full CI suite
+check: static test
+{%- endif %}
+
+# ── Setup ─────────────────────────────────────────────────────────────────────
+
+# Update this project to the current template (extra arguments go to copier, e.g. --vcs-ref v2.1.0)
+template-update *ARGS:
+    uvx copier update --answers-file .copier/answers.yml "$@"
+
+# Check that the required tools are installed, recent enough and logged in
+doctor:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    problems=0
+    problem() { echo "problem: $*" >&2; problems=$((problems + 1)); }
+    need() { # need TOOL [MINIMUM-VERSION]
+        if ! command -v "$1" >/dev/null 2>&1; then
+            problem "$1 is not installed — run .copier/setup.sh"
+            return 1
+        fi
+        [ -n "${2:-}" ] || return 0
+        local have
+        # fj has a `version` subcommand instead of `--version`.
+        have=$({ "$1" --version 2>/dev/null || "$1" version 2>/dev/null; } | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1)
+        if [ "$(printf '%s\n%s\n' "$2" "$have" | sort -V | head -n 1)" != "$2" ]; then
+            problem "$1 is $have, need $2 or newer — run .copier/setup.sh"
+            return 1
+        fi
+    }
+    need git
+    need uv
+{%- if hooks != 'none' %}
+    need pre-commit
+    [ -f .git/hooks/pre-commit ] || problem "pre-commit hooks are not installed — run 'pre-commit install'"
+{%- endif %}
+    if ! git remote get-url origin >/dev/null 2>&1; then
+        problem "no 'origin' remote"
+{%- if platform == 'github' %}
+    elif need gh 2.105.0; then
+        gh auth status >/dev/null 2>&1 || problem "gh is not logged in — set GH_TOKEN or run 'gh auth login'"
+    fi
+{%- else %}
+    elif need fj 0.7.0; then
+        host=$(just _forge-host)
+        fj auth list 2>/dev/null | grep -qxF "$host" ||
+            problem "fj is not logged in to $host — run .copier/setup.sh with FORGEJO_TOKEN set, or 'fj -H $host auth login'"
+    fi
+{%- endif %}
+    if [ "$problems" -gt 0 ]; then exit 1; fi
+    echo "all tools present"
+{%- if platform == 'github' %}
+
+# Protect main for non-admins: no direct pushes, merging needs one approving review (run once, as admin)
+forge-protect:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # gh has no command for branch protection, so this is the one recipe that calls the API.
+    gh api -X PUT "repos/{owner}/{repo}/branches/main/protection" --input - >/dev/null <<'JSON'
+    {
+      "required_status_checks": null,
+      "enforce_admins": false,
+      "required_pull_request_reviews": { "required_approving_review_count": 1 },
+      "restrictions": null,
+      "allow_force_pushes": false,
+      "allow_deletions": false
+    }
+    JSON
+    echo "main is protected for non-admins: pull requests only, one approving review"
+{%- else %}
+
+# There is no forge-protect recipe: fj 0.7.0 cannot manage branch protection.
+# Protect main by hand in the repository settings — see docs/workflow.md, "Enforcement".
+{%- endif %}
+
+# Run by the agents' Stop hooks: lint and typecheck when the working tree has changes
+stop-check:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    # The hook passes JSON on stdin. When the agent is already continuing because
+    # of this hook, let it stop: one round of feedback, no loop.
+    input=$(timeout 1 cat 2>/dev/null || true)
+    if printf '%s' "$input" | grep -qE '"stop_hook_active" *: *true'; then exit 0; fi
+    [ -n "$(git status --porcelain 2>/dev/null)" ] || exit 0
+    if ! out=$(just static 2>&1); then
+        printf '%s\n' "$out" | tail -n 60 >&2
+        echo "just static fails on the current changes — fix it before stopping" >&2
+        exit 2
+    fi
+
+# Word-level diff of the Markdown files changed since BASE
+mddiff BASE="main":
+    git diff --word-diff=color "$1"...HEAD -- '*.md'
+
+# ── Forge ─────────────────────────────────────────────────────────────────────
+# Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
+{%- if platform != 'github' %}
+
+# fj cannot tell which repo is meant when several remotes exist and the branch
+# has no upstream, so every fj call is pinned to the host of `origin`.
+[private]
+_forge-host:
+    @git remote get-url origin | sed -E -e 's#^https?://([^@/]*@)?([^/]+).*#\2#;t' -e 's#^([a-z+]+://)?([^@/]*@)?([^:/]+).*#\3#'
+{%- endif %}
+
+# List open issues, optionally filtered by a search query
+issues *QUERY:
+{%- if platform == 'github' %}
+    if [ "$#" -gt 0 ]; then gh issue list --search "$*"; else gh issue list; fi
+{%- else %}
+    fj -H "$(just _forge-host)" issue search "$@"
+{%- endif %}
+
+# Show issue N with its comments and its relations to other issues
+issue N:
+{%- if platform == 'github' %}
+    gh issue view "$1" --comments
+    gh issue view "$1" --json issueType,labels,parent,subIssues,blockedBy,blocking
+{%- else %}
+    fj -H "$(just _forge-host)" issue view "$1"
+    fj -H "$(just _forge-host)" issue view "$1" comments
+    fj -H "$(just _forge-host)" issue depend list "$1"
+    fj -H "$(just _forge-host)" issue block list "$1"
+{%- endif %}
+
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+# Open a new issue with the body from FILE; `type/<Name>` sets the issue type, anything else is a label
+{%- else %}
+# Open a new issue with the body from FILE and, optionally, labels
+{%- endif %}
+issue-new TITLE FILE *LABELS:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    title="$1" file="$2"
+    shift 2
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+    args=()
+    for label in "$@"; do
+        case "$label" in
+            type/*) args+=(--type "$(printf '%s' "$label" | cut -d/ -f2-)") ;;
+            *) args+=(--label "$label") ;;
+        esac
+    done
+    gh issue create --title "$title" --body-file "$file" "${args[@]}"
+{%- elif platform == 'github' %}
+    labels=$(IFS=,; echo "$*")
+    gh issue create --title "$title" --body-file "$file" ${labels:+--label "$labels"}
+{%- else %}
+    host=$(just _forge-host)
+    # fj reports the new issue on stderr and may wrap numbers in invisible Unicode marks.
+    out=$(fj -H "$host" issue create "$title" --body-file "$file" 2>&1) || { echo "$out" >&2; exit 1; }
+    echo "$out"
+    [ "$#" -gt 0 ] || exit 0
+    number=$(printf '%s\n' "$out" | LC_ALL=C sed 's/[^ -~]//g' | grep -oE '#[0-9]+' | head -n 1 | tr -d '#')
+    if [ -z "$number" ]; then
+        echo "error: issue created, but its number could not be read — label it with 'just issue-label'" >&2
+        exit 1
+    fi
+    just issue-label "$number" "$@"
+{%- endif %}
+
+# Add labels to issue N
+issue-label N +LABELS:
+{%- if platform == 'github' %}
+    n="$1"; shift; IFS=,; gh issue edit "$n" --add-label "$*"
+{%- else %}
+    n="$1"; shift; for l in "$@"; do set -- "$@" --add "$l"; shift; done; fj -H "$(just _forge-host)" issue edit "$n" labels "$@"
+{%- endif %}
+
+# Remove labels from issue N
+issue-unlabel N +LABELS:
+{%- if platform == 'github' %}
+    n="$1"; shift; IFS=,; gh issue edit "$n" --remove-label "$*"
+{%- else %}
+    n="$1"; shift; for l in "$@"; do set -- "$@" --rm "$l"; shift; done; fj -H "$(just _forge-host)" issue edit "$n" labels "$@"
+{%- endif %}
+{%- if platform == 'github' and github_owner_type == 'organization' %}
+
+# Change the issue type of issue N (a type defined by the organisation, e.g. Bug)
+issue-type N TYPE:
+    gh issue edit "$1" --type "$2"
+{%- endif %}
+{%- if platform == 'github' %}
+
+# Make issue N a sub-issue of PARENT
+issue-parent N PARENT:
+    gh issue edit "$1" --parent "$2"
+{%- endif %}
+
+# Record that issue N cannot be finished before issue BLOCKER
+issue-blocked-by N BLOCKER:
+{%- if platform == 'github' %}
+    gh issue edit "$1" --add-blocked-by "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" issue depend add "$1" "$2"
+{%- endif %}
+
+# Remove the dependency of issue N on issue BLOCKER
+issue-unblock N BLOCKER:
+{%- if platform == 'github' %}
+    gh issue edit "$1" --remove-blocked-by "$2"
+{%- else %}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    host=$(just _forge-host)
+    # fj 0.7.0 reports "unexpected status code 201" although the removal worked,
+    # so the result is checked instead of the exit code.
+    fj -H "$host" issue depend remove "$1" "$2" >/dev/null 2>&1 || true
+    remaining=$(fj -H "$host" issue depend list "$1" 2>&1)
+    echo "$remaining"
+    if printf '%s\n' "$remaining" | LC_ALL=C sed 's/[^ -~]//g' | grep -qE "#$2( |\$)"; then
+        echo "error: #$1 still depends on #$2" >&2
+        exit 1
+    fi
+{%- endif %}
+
+# Comment on issue N with the content of FILE (where the result lives), then close it
+issue-close N FILE:
+{%- if platform == 'github' %}
+    gh issue comment "$1" --body-file "$2"
+    gh issue close "$1"
+{%- else %}
+    fj -H "$(just _forge-host)" issue comment "$1" --body-file "$2"
+    fj -H "$(just _forge-host)" issue close "$1"
+{%- endif %}
+
+# List the repository's labels
+labels:
+{%- if platform == 'github' %}
+    gh label list --limit 200
+{%- else %}
+    fj -H "$(just _forge-host)" repo labels view
+{%- endif %}
+
+# Create the standard labels; existing ones are kept
+labels-init:
+    #!/usr/bin/env bash
+    set -euo pipefail
+{%- if platform != 'github' %}
+    host=$(just _forge-host)
+    # `labels view` prints " scope  name  ID" for exclusive labels and " name  ID" otherwise.
+    existing=$(fj -H "$host" repo labels view 2>&1 | LC_ALL=C sed -E -e 's/\x1b\[[0-9;]*m//g' -e 's/[^ -~]//g' -e '/^ [^ ]/!d' -e 's/^ //' -e 's/ +[0-9]+ *$//' -e 's#  #/#')
+{%- endif %}
+    while IFS='|' read -r name color description; do
+{%- if platform == 'github' %}
+        gh label create "$name" --color "$color" --description "$description" --force
+{%- else %}
+        if printf '%s\n' "$existing" | grep -qxF "$name"; then
+            echo "exists: $name"
+        else
+            fj -H "$host" repo labels create "$name" "$color" --description "$description" --exclusive
+        fi
+{%- endif %}
+    done <<'LABELS'
+{%- if not (platform == 'github' and github_owner_type == 'organization') %}
+    type/bug|d73a4a|Behaviour that is wrong today
+    type/feature|0e8a16|Something the software should do and does not do yet, or should do differently
+    type/task|c5def5|Work that changes no behaviour: tooling, housekeeping, setup
+    type/docs|0075ca|Documentation only
+    type/research|d4c5f9|A question to answer before work can be planned
+    type/epic|5319e7|A parent that groups issues towards one outcome; carries no work itself
+    type/operations|fbca04|Manual work outside the code: delivery, deployments, related systems, administration
+{%- endif %}
+    prio/high|b60205|Before everything that is not labelled
+    prio/low|c2e0c6|Agreed, not scheduled
+    LABELS
+
+# Comment on issue N; the comment is read from FILE
+comment N FILE:
+{%- if platform == 'github' %}
+    gh issue comment "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" issue comment "$1" --body-file "$2"
+{%- endif %}
+
+# List open pull requests
+prs:
+{%- if platform == 'github' %}
+    gh pr list
+{%- else %}
+    fj -H "$(just _forge-host)" pr search
+{%- endif %}
+
+# Push the current branch and open a PR against main; the body is read from FILE
+pr TITLE FILE:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    branch=$(git branch --show-current)
+    if [ -z "$branch" ] || [ "$branch" = main ] || [ "$branch" = master ]; then
+        echo "error: open PRs from a feature branch, not from '${branch:-detached HEAD}'" >&2
+        exit 1
+    fi
+    git push -u origin HEAD
+{%- if platform == 'github' %}
+    gh pr create --title "$1" --base main --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr create "$1" --base main --body-file "$2"
+{%- endif %}
+
+# Show PR N: title, body, comments, mergeability and CI status
+pr-view N:
+{%- if platform == 'github' %}
+    gh pr view "$1" --comments
+    -gh pr checks "$1"
+{%- else %}
+    fj -H "$(just _forge-host)" pr view "$1"
+    fj -H "$(just _forge-host)" pr view "$1" comments
+    fj -H "$(just _forge-host)" pr status "$1"
+{%- endif %}
+
+# Replace the body of PR N with the content of FILE
+pr-body N FILE:
+{%- if platform == 'github' %}
+    gh pr edit "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr edit "$1" body "$(cat "$2")"
+{%- endif %}
+
+# Let a second agent review PR N and post its review as a PR comment
+review N:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # AGENT_REVIEWER is a command that reads a prompt on stdin and prints the answer.
+    reviewer="${AGENT_REVIEWER:-{% if 'claude' in agents %}claude -p{% elif 'codex' in agents %}codex exec -{% endif %}}"
+    if [ -z "$reviewer" ]; then
+        echo "error: set AGENT_REVIEWER to a command that reads a prompt on stdin, e.g. 'claude -p'" >&2
+        exit 1
+    fi
+    mkdir -p .ai/forge
+    out=".ai/forge/review-$1.md"
+    {
+        cat .agents/skills/review-pr/SKILL.md
+        printf '\n---\n\nYou are running headless through `just review`. The pull request is #%s; its text, comments, CI status and diff follow. You may read files in this checkout, which is not necessarily the PR branch. Do not run `just` and do not post anything: print the finished review as Markdown and nothing else.\n\n## Pull request\n\n' "$1"
+        just pr-view "$1" 2>/dev/null
+        printf '\n## Diff\n\n'
+        just pr-diff "$1" 2>/dev/null
+    } | $reviewer >"$out"
+    if [ ! -s "$out" ]; then
+        echo "error: the reviewer printed nothing" >&2
+        exit 1
+    fi
+    { printf '\n\n---\nReviewed by `%s` through `just review`.\n' "$reviewer"; } >>"$out"
+    just comment-pr "$1" "$out"
+
+# Show the diff of PR N
+pr-diff N:
+{%- if platform == 'github' %}
+    gh pr diff "$1"
+{%- else %}
+    fj -H "$(just _forge-host)" pr view "$1" diff
+{%- endif %}
+
+# Comment on PR N; the comment is read from FILE
+comment-pr N FILE:
+{%- if platform == 'github' %}
+    gh pr comment "$1" --body-file "$2"
+{%- else %}
+    fj -H "$(just _forge-host)" pr comment "$1" --body-file "$2"
+{%- endif %}
+
+# List releases
+releases:
+{%- if platform == 'github' %}
+    gh release list
+{%- else %}
+    fj -H "$(just _forge-host)" release list
+{%- endif %}
+
+# Tag main as VERSION (vMAJOR.MINOR.PATCH) and publish a release with generated notes
+release VERSION:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version="$1"
+    if ! [[ "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]]; then
+        echo "error: VERSION must look like v1.2.3, got '$version'" >&2
+        exit 1
+    fi
+    if [ "$(git branch --show-current)" != main ]; then
+        echo "error: releases are cut from main" >&2
+        exit 1
+    fi
+    if [ -n "$(git status --porcelain)" ]; then
+        echo "error: working tree is not clean" >&2
+        exit 1
+    fi
+    git fetch --quiet --tags origin main
+    if [ "$(git rev-parse HEAD)" != "$(git rev-parse FETCH_HEAD)" ]; then
+        echo "error: local main differs from origin/main — pull or push first" >&2
+        exit 1
+    fi
+    notes=$(mktemp)
+    trap 'rm -f "$notes"' EXIT
+{%- if python == 'component' %}
+    uv run --project {{ component_dir }} git-cliff --config .copier/cliff.toml --unreleased --tag "$version" --strip header > "$notes"
+{%- else %}
+    uv run git-cliff --config .copier/cliff.toml --unreleased --tag "$version" --strip header > "$notes"
+{%- endif %}
+{%- if platform == 'github' %}
+    gh release create "$version" --title "$version" --target main --notes-file "$notes"
+{%- else %}
+    fj -H "$(just _forge-host)" release create "$version" --create-tag "$version" --branch main --body "$(cat "$notes")"
+{%- endif %}

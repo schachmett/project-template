@@ -39,7 +39,6 @@ The template is Python-only: every generated project has a Python package, eithe
 ├── README.md
 ├── .gitignore
 ├── .env.example                 # (if secrets=env-only)
-├── cliff.toml                   # git-cliff release notes config
 ├── Dockerfile                   # (if is_service)
 ├── CLAUDE.md · .claude/         # (if agents has claude) @AGENTS.md, skills link, deny rules, Stop hook
 ├── .codex/                      # (if agents has codex) command rules, Stop hook
@@ -53,8 +52,12 @@ The template is Python-only: every generated project has a Python package, eithe
 │   ├── operations.md            # (if is_service)
 │   ├── adr/
 │   └── domain/
-├── scripts/setup.sh             # installs the tools on a clean machine / cloud agent environment
-├── justfile                     # quality recipes; forge recipes: issues, labels, relations, PRs, review, releases
+├── .copier/                     # owned by the template, replaced on update — never edit
+│   ├── recipes.just             # quality, forge and setup recipes (imported by justfile)
+│   ├── setup.sh                 # installs the tools on a clean machine / cloud agent environment
+│   ├── cliff.toml               # git-cliff release notes config
+│   └── answers.yml              # copier answers
+├── justfile                     # owned by the project: imports .copier/recipes.just, holds project recipes
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
 ├── .forgejo/workflows/          # (if platform ≠ github)
 │   ├── ci.yml
@@ -64,7 +67,7 @@ The template is Python-only: every generated project has a Python package, eithe
 │   └── cd.yml                   # (if is_service)
 │
 ├── [python=root]
-│   ├── pyproject.toml · .python-version · cliff.toml
+│   ├── pyproject.toml · .python-version
 │   ├── src/<package>/
 │   │   ├── __init__.py          # exposes __version__
 │   │   └── py.typed
@@ -92,18 +95,67 @@ The template is Python-only: every generated project has a Python package, eithe
 ### Updating a repo generated from this template
 
 ```bash
-copier update
+just template-update          # = uvx copier update --answers-file .copier/answers.yml
 ```
 
-Copier does a 3-way merge (old template rendering + your local changes + new template rendering) and writes conflict markers where both sides changed. Resolve conflicts, then commit.
+Copier does a 3-way merge (old template rendering + your local changes + new template rendering) and writes conflict markers where both sides changed. Resolve conflicts, then commit. Everything under `.copier/` is replaced; the root `justfile` is never touched.
 
-Template versions before the skills change had `docs/agent-workflow.md`, `docs/quality-gates.md` and `docs/testing.md`. They are replaced by `docs/workflow.md`, the testing section of `docs/codestyle.md` and the skills under `.agents/skills/`. **`copier update` deletes the three old files even if you edited them, without a conflict.** The deletion is uncommitted, so before committing the update check `git diff -- docs/agent-workflow.md docs/quality-gates.md docs/testing.md` and move your own additions into the new files.
+### Migrating from v1 to v2
 
-All template files render directly to their final paths — no post-copy tasks. The 3-way merge works correctly across the entire project including `pyproject.toml`.
+v2 moves procedures into skills, merges the rule docs, routes all forge operations through `just`, and puts the template-owned files into `.copier/`. A v1 project gets there with one update and a few manual steps. The steps are written so they can be handed to the project's agent as they are. Tried on a real v1.0.0 service project: 9 files with conflicts, mostly one hunk each.
+
+**1. Update on a branch.** v1 keeps its answers in `.copier-answers.yml` and has no `template-update` recipe yet:
+
+```bash
+git checkout -b chore/template-v2
+mkdir .copier && git mv .copier-answers.yml .copier/answers.yml
+git commit -m "chore: move copier answers"
+uvx copier update --answers-file .copier/answers.yml
+```
+
+Answer the new questions; do not pass `--defaults` blindly:
+
+- `agents` — the agent tools you use (`claude`, `codex`).
+- `github_owner_type` (GitHub only) — `organization` if the repository belongs to one, else `personal`. Organisations use native issue types, everything else `type/` labels.
+
+`workflow_style` no longer exists and is dropped. `python: none` no longer exists either.
+
+**2. Rescue what the update deletes, before committing.** `docs/agent-workflow.md`, `docs/quality-gates.md` and `docs/testing.md` are deleted without a conflict, also when you edited them. They are still in `HEAD` (`git show HEAD:docs/agent-workflow.md`). Move project-specific content to its new home:
+
+| v1 | v2 |
+|---|---|
+| `docs/agent-workflow.md`: session flow, mandatory stops, handoff | `.agents/skills/` (`plan-issue`, `implement-issue`); project rules go in `docs/workflow.md` |
+| `docs/agent-workflow.md`: branching, issue conventions, releases | `docs/workflow.md` |
+| `docs/quality-gates.md` | `docs/workflow.md`, "Quality gates" |
+| `docs/testing.md` | `docs/codestyle.md`, "Testing" |
+| handoff notes in `.ai/` | the PR body; `.ai/` is scratch, body files go in `.ai/forge/` |
+| raw `gh` / `fj` commands in docs | `just` recipes (`just --list`) |
+| `cliff.toml`, `scripts/setup.sh` | `.copier/` |
+| `CHANGELOG.md` | release notes on the forge (`just release`); delete the file if you want that |
+| `docker-compose.yml`, `just up` | no longer generated; keep yours if you use them |
+
+**3. Rewrite the `justfile` — the one step that cannot be skipped.** The file now belongs to the project, so the update leaves it exactly as it was: your recipes plus the old v1 template recipes, and without the import none of the new recipes exist. Delete the v1 template recipes (`fix`, `lint`, `typecheck`, `test`, `static`, `check`, `up`), keep your own, and put this at the top:
+
+```just
+set allow-duplicate-recipes
+
+import '.copier/recipes.just'
+```
+
+A bare `just` runs the first recipe of the root file; add `default:` with `@just --list` if you have none. `just --list` must then show `doctor`, `issues`, `pr`, `release` and the rest.
+
+**4. Resolve the conflicts.** The template wins for `AGENTS.md`, `.agents/`, `.copier/`, CI workflows and `.pre-commit-config.yaml`; the project wins for `src/`, `tests/`, its own `pyproject.toml` sections, `README.md`, `Dockerfile` and `docs/architecture.md` / `docs/operations.md` content. Things that came up in the trial:
+
+- `.gitignore`: if the project ignores `.claude/`, the Claude adapter is generated but never committed. Ignore only `.claude/settings.local.json`.
+- `.pre-commit-config.yaml`: detect-secrets now runs without `--baseline`. Keep the argument if the project has a `.secrets.baseline` it relies on.
+- `tests/<package>/test_package.py` is new; delete it if the project already has an equivalent test.
+- `just release` needs `git-cliff` in the dev dependencies (`uv add --dev git-cliff`).
+
+**5. Check and finish.** `just doctor`, `just check`, commit, open the PR. Then once per repository: `just labels-init`, branch protection (`just forge-protect` on GitHub, by hand on Forgejo) and an agent account without admin rights — see "Enforcement" in the generated `docs/workflow.md`.
 
 ### Onboarding an existing repo (no copier history)
 
-The first import is manual — no `.copier-answers.yml` means no merge baseline.
+The first import is manual — no `.copier/answers.yml` means no merge baseline.
 
 1. **Generate a fresh copy into a temp branch:**
    ```bash
@@ -114,7 +166,7 @@ The first import is manual — no `.copier-answers.yml` means no merge baseline.
      ... \
      /path/to/project-template .
    ```
-   This writes `.copier-answers.yml` and overwrites all template files including `pyproject.toml` and `src/`.
+   This writes `.copier/answers.yml` and overwrites all template files including `pyproject.toml` and `src/`.
 
 2. **Restore your existing Python files:**
    ```bash
@@ -123,13 +175,14 @@ The first import is manual — no `.copier-answers.yml` means no merge baseline.
 
 3. **Manually merge pyproject.toml sections** you want from the template version (`git show template-import:pyproject.toml`): `[tool.pytest.*]`, `[tool.coverage.*]`, `[tool.pyright]`, `[tool.ruff.*]`.
 
-4. **Keep the template versions** of: `docs/`, `AGENTS.md`, `justfile`, CI workflows, `.pre-commit-config.yaml`.
+4. **Keep the template versions** of: `docs/`, `AGENTS.md`, `.agents/`, `.copier/`, CI workflows, `.pre-commit-config.yaml`. Put your own recipes into the generated `justfile` below the import.
 
-5. Commit. The repo now has `.copier-answers.yml` so future `copier update` calls work.
+5. Commit. The repo now has `.copier/answers.yml` so future `just template-update` calls work.
 
 | File | Action |
 |---|---|
-| `AGENTS.md`, `docs/`, `justfile`, CI | Keep template version |
+| `AGENTS.md`, `.agents/`, `.copier/`, `docs/`, CI | Keep template version |
+| `justfile` | Generated one, plus your own recipes |
 | `.pre-commit-config.yaml` | Keep template version |
 | `pyproject.toml` | Restore yours, cherry-pick `[tool.*]` sections |
 | `src/`, `tests/` | Always restore yours |

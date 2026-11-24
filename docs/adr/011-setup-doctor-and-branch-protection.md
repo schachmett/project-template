@@ -9,7 +9,7 @@ Generated projects assumed `just`, `uv`, `pre-commit` and a logged-in forge CLI 
 
 ## Decision
 
-- **`scripts/setup.sh`** (rendered per platform) installs uv, just, pre-commit and the forge CLI into `~/.local/bin` without root, syncs the Python environment, installs the hooks and ends with `just doctor`. The forge CLI is a pinned release binary (fj 0.7.0 from Codeberg, gh 2.105.0 from GitHub). Tools that are already installed are kept.
+- **`.copier/setup.sh`** (originally `scripts/setup.sh`, moved by [ADR 013](013-project-owns-justfile.md); rendered per platform) installs uv, just, pre-commit and the forge CLI into `~/.local/bin` without root, syncs the Python environment, installs the hooks and ends with `just doctor`. The forge CLI is a pinned release binary (fj 0.7.0 from Codeberg, gh 2.105.0 from GitHub). Tools that are already installed are kept.
 - **Tokens come from the environment.** gh reads `GH_TOKEN` itself. fj has no such variable, so the script pipes `FORGEJO_TOKEN` to `fj auth add-token` on stdin; fj then stores it in its own configuration.
 - **`just doctor`** prints one line per problem and exits non-zero: tool missing, forge CLI too old, hooks not installed, forge CLI not logged in for the host of `origin`. AGENTS.md mentions it only for the case that a recipe fails on a tool.
 - **Branch protection:** on GitHub `just forge-protect` applies it through `gh api` (gh has no command for it — the one API call in the justfile): pull requests only, one approving review, not enforced for admins. fj 0.7.0 cannot manage branch protection, so on Forgejo the manual steps are printed after `copier copy` and described in `workflow.md`.
