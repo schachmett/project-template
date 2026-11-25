@@ -1,6 +1,6 @@
 # 004: The template is Python-only
 
-**Status**: accepted
+**Status**: superseded by [014](014-python-is-optional.md)
 **Date**: 2026-11-16
 
 ## Context

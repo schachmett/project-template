@@ -1,6 +1,6 @@
 # project-template
 
-[Copier](https://copier.readthedocs.io/) template for new projects. Generates agent workflow docs, CI/CD pipelines, and a Python project skeleton.
+[Copier](https://copier.readthedocs.io/) template for new projects. Generates the agent workflow layer (rules, skills, `just` recipes for the forge, agent adapters), CI/CD pipelines, and optionally a Python project skeleton.
 
 ## Quick start
 
@@ -20,16 +20,16 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `forgejo_url` | str | — | Asked when platform ≠ github |
 | `org` | str | — | GitHub/Forgejo org or username |
 | `github_owner_type` | choice | `personal` | `personal` / `organization`. Asked when platform = github; organizations use native issue types, everything else `type/` labels |
-| `python` | choice | `root` | `root` / `component` |
-| `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12` |
-| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml` |
+| `python` | choice | `root` | `root` / `component` / `none` (the project brings its own checks) |
+| `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12`. Asked with Python |
+| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml`. Python only |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
 | `component_dir` | str | `backend` | Asked when python=component |
 | `agents` | multi-choice | `[claude]` | `claude`, `codex`, both or none. Selects the adapters; `AGENTS.md` and the skills are always generated |
 
-The template is Python-only: every generated project has a Python package, either at the repo root or in a component directory ([ADR 004](docs/adr/004-python-only.md)).
+`hooks=python` and `is_service` need Python. With `python=none` the template generates no Python files and no quality recipes; the project defines `check` (required) and optionally `static`, `setup` and `fix` in its `justfile` ([ADR 014](docs/adr/014-python-is-optional.md)).
 
 ## Generated output
 
@@ -118,7 +118,7 @@ Answer the new questions; do not pass `--defaults` blindly:
 - `agents` — the agent tools you use (`claude`, `codex`).
 - `github_owner_type` (GitHub only) — `organization` if the repository belongs to one, else `personal`. Organisations use native issue types, everything else `type/` labels.
 
-`workflow_style` no longer exists and is dropped. `python: none` no longer exists either.
+`workflow_style` no longer exists and is dropped. A project with `python: none` stays without Python; its `justfile` must define a `check` recipe, which CI and the skills call.
 
 **2. Rescue what the update deletes, before committing.** `docs/agent-workflow.md`, `docs/quality-gates.md` and `docs/testing.md` are deleted without a conflict, also when you edited them. They are still in `HEAD` (`git show HEAD:docs/agent-workflow.md`). Move project-specific content to its new home:
 
@@ -149,7 +149,7 @@ A bare `just` runs the first recipe of the root file; add `default:` with `@just
 - `.gitignore`: if the project ignores `.claude/`, the Claude adapter is generated but never committed. Ignore only `.claude/settings.local.json`.
 - `.pre-commit-config.yaml`: detect-secrets now runs without `--baseline`. Keep the argument if the project has a `.secrets.baseline` it relies on.
 - `tests/<package>/test_package.py` is new; delete it if the project already has an equivalent test.
-- `just release` needs `git-cliff` in the dev dependencies (`uv add --dev git-cliff`).
+- `just release` runs git-cliff through `uvx`; a `git-cliff` entry in the project's dev dependencies is no longer needed.
 
 **5. Check and finish.** `just doctor`, `just check`, commit, open the PR. Then once per repository: `just labels-init`, branch protection (`just forge-protect` on GitHub, by hand on Forgejo) and an agent account without admin rights — see "Enforcement" in the generated `docs/workflow.md`.
 
@@ -187,6 +187,16 @@ The first import is manual — no `.copier/answers.yml` means no merge baseline.
 | `pyproject.toml` | Restore yours, cherry-pick `[tool.*]` sections |
 | `src/`, `tests/` | Always restore yours |
 | `README.md` | Restore yours, manually add `just` commands table |
+
+### Onboarding a repository without Python
+
+Same procedure with `--data python=none --data hooks=none` (or `minimal`). The template then brings only the workflow layer. Tried on an ABAP repository with its own `justfile`:
+
+- Keep your `justfile` and add `set allow-duplicate-recipes` and `import '.copier/recipes.just'` near the top. A `set shell := […]` of your own also applies to the template's recipes; they work under `bash -euo pipefail`.
+- CI and the skills call `just check`. `just static` (fast checks for the agents' Stop hook), `just setup` (CI runs it before `check`) and `just fix` are picked up if they exist; `just doctor` only insists on `check`.
+- The template writes `.github/workflows/ci.yml` (or the Forgejo one). Remove your own workflow that does the same, or keep yours and delete the generated one.
+- These files collide with ones such a repository usually has, and have to be merged by hand: `AGENTS.md`, `README.md`, `docs/workflow.md`, `docs/architecture.md`, `docs/adr/README.md`, `.gitignore`. Rule docs of your own (`quality-gates.md`, `testing.md`, `conventions.md`) are not touched; fold them into `docs/workflow.md` and `docs/codestyle.md` when convenient.
+- `uv` is needed as a tool runner (copier, git-cliff), nothing else.
 
 ## Testing the template
 

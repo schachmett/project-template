@@ -22,7 +22,7 @@ Otherwise use `plan-issue` first.
    If a branch or PR for the issue already exists (`just prs`, `just pr-view N`), continue there instead.
 3. **Implement the plan.** Stay inside the agreed scope. Something else is broken? Note it for the PR body or open an issue; do not fix it in passing.
 4. **Tests come with the change.** A bug fix includes the test that would have caught it.
-5. **Run the gates:** `just fix`, then `just check`. Fix failures; never skip or silence a check to get through.
+5. **Run the gates:** `just fix` if the project has that recipe, then `just check`. Fix failures; never skip or silence a check to get through.
 6. **Update the docs** the change makes wrong, and write an ADR for any non-obvious decision (`docs/adr/README.md`).
 7. **Commit** in conventional-commit format (`docs/codestyle.md`), one logical change per commit.
 8. **Open the PR.** Write the body to `.ai/forge/pr-N.md` using the template below, then

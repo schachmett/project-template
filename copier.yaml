@@ -119,10 +119,11 @@ github_owner_type:
 
 python:
   type: str
-  help: "Python layout: root (project at the repo root) or component (under backend/)"
+  help: "Python layout: root (project at the repo root), component (under backend/), or none (the project brings its own checks)"
   choices:
     - root
     - component
+    - none
   default: root
 
 python_version:
@@ -133,11 +134,13 @@ python_version:
     - "3.13"
     - "3.12"
   default: "3.14"
+  when: "{{ python != 'none' }}"
 
 is_service:
   type: bool
-  help: "Does this project run as a long-running service? (adds Dockerfile, operations.md, CD pipeline)"
+  help: "Does this project run as a long-running service? (adds Dockerfile, operations.md, CD pipeline; Python only)"
   default: false
+  validator: "{% if is_service and python == 'none' %}is_service needs a Python project{% endif %}"
 
 license:
   type: str
@@ -166,6 +169,7 @@ hooks:
     - python
     - none
   default: minimal
+  validator: "{% if hooks == 'python' and python == 'none' %}hooks=python needs a Python project{% endif %}"
 
 component_dir:
   type: str

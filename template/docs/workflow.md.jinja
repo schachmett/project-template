@@ -33,7 +33,7 @@ There is no merge recipe. The plan gate stays a convention; the `plan-issue` ski
 
 ### Agent adapters
 
-`AGENTS.md` and `.agents/skills/` are the tool-neutral core. On top of them this project has thin adapters for {% if 'claude' in agents %}Claude Code (`CLAUDE.md`, `.claude/`){% endif %}{% if 'claude' in agents and 'codex' in agents %} and {% endif %}{% if 'codex' in agents %}Codex (`.codex/`, loaded once the project is trusted in Codex){% endif %}. An adapter does three things and contains no logic of its own: it makes the skills discoverable, refuses the obvious commands for merging a PR or pushing to `main`, and runs `just stop-check` when the agent stops — lint and typecheck if the working tree has changes, with failures handed back to the agent.
+`AGENTS.md` and `.agents/skills/` are the tool-neutral core. On top of them this project has thin adapters for {% if 'claude' in agents %}Claude Code (`CLAUDE.md`, `.claude/`){% endif %}{% if 'claude' in agents and 'codex' in agents %} and {% endif %}{% if 'codex' in agents %}Codex (`.codex/`, loaded once the project is trusted in Codex){% endif %}. An adapter does three things and contains no logic of its own: it makes the skills discoverable, refuses the obvious commands for merging a PR or pushing to `main`, and runs `just stop-check` when the agent stops — {% if python == 'none' %}the project's `static` recipe, if it has one and{% else %}lint and typecheck if{% endif %} the working tree has changes, with failures handed back to the agent.
 
 The refused commands are matched by their text, so they stop a slip, not a determined agent. The gate is the branch protection above.
 {%- endif %}
@@ -129,7 +129,18 @@ This project was generated from a template and is updated from it with `just tem
 The root `justfile` belongs to the project. It imports the template's recipes; project recipes go there, and a recipe defined there replaces a template recipe of the same name. Mind that this also hides a template recipe added later under that name.
 
 ## Quality gates
+{% if python == 'none' %}
+The template brings no checks for this project's language; the project defines them as recipes in its `justfile`. The workflow relies on these names:
 
+| Recipe | | Picked up by |
+|---|---|---|
+| `check` | required | CI, and the skills before a PR — everything that must pass |
+| `static` | optional | the agents' Stop hook, for fast feedback (lint, typecheck) |
+| `setup` | optional | CI and `.copier/setup.sh`, before `check` — install what the checks need |
+| `fix` | optional | you and the agent, before committing — auto-format |
+
+An optional recipe that does not exist is skipped; one that is added later is picked up the next time, with nothing to regenerate.
+{% else %}
 ```bash
 {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen    # install / sync dependencies
 
@@ -145,7 +156,7 @@ just check     # everything CI runs
 | Lint | ruff with `select = ["ALL"]`; the ignore list is in `pyproject.toml` |
 | Typecheck | pyright strict — no implicit `Any`, public functions annotated |
 | Tests | pytest with branch coverage; fails below 80% |
-
+{% endif %}
 CI runs `just check` on every push and pull request.
 
 ### Pre-commit hooks

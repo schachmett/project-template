@@ -25,6 +25,11 @@ cd {{ component_dir }} && uv sync
 just fix    # format + auto-fix imports
 just check  # full CI suite
 ```
+{% else %}
+```bash
+just        # list the recipes
+just check  # everything that must pass
+```
 {% endif %}
 
 ## Development
@@ -34,14 +39,16 @@ See [AGENTS.md](AGENTS.md) for the rules, the skills (procedures) and the docume
 
 ### Prerequisites
 
-- [uv](https://docs.astral.sh/uv/) ≥ 0.5
+- [uv](https://docs.astral.sh/uv/) ≥ 0.5{% if python == 'none' %} (runs the template tooling: copier, git-cliff){% endif %}
 - [just](https://just.systems/) (task runner)
 {%- if platform == 'github' %}
 - [GitHub CLI](https://cli.github.com/) ≥ 2.105 (issues, PRs, releases through `just`)
 {%- else %}
 - [forgejo-cli](https://codeberg.org/forgejo-contrib/forgejo-cli) (`fj`) 0.7 (issues, PRs, releases through `just`)
 {%- endif %}
+{%- if python != 'none' %}
 - Python {{ python_version }} (managed by uv via `.python-version`)
+{%- endif %}
 
 `.copier/setup.sh` installs all of these on a clean Linux machine; `just doctor` checks an existing setup.
 
@@ -49,9 +56,13 @@ See [AGENTS.md](AGENTS.md) for the rules, the skills (procedures) and the docume
 
 | Command | Description |
 |---------|-------------|
+{%- if python != 'none' %}
 | `just fix` | Auto-format and fix imports (run before committing) |
 | `just lint` | Ruff + pyright only (fast feedback, no tests) |
 | `just check` | Full CI suite: format-check + lint + typecheck + tests |
+{%- else %}
+| `just check` | Everything that must pass before a PR |
+{%- endif %}
 | `just --list` | Show all available recipes |
 
 

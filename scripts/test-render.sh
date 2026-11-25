@@ -44,6 +44,20 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     [ ! -e "$dest/.copier-answers.yml" ] && [ -f "$dest/.copier/answers.yml" ] || fail "answers file is not in .copier/"
     [ -f "$dest/.copier/cliff.toml" ] && [ ! -e "$dest/cliff.toml" ] || fail "cliff.toml is not in .copier/"
 
+    if [ -e "$dest/pyproject.toml" ] || [ -d "$dest/backend" ]; then
+        [ -n "$(cd "$dest" && just --summary | tr ' ' '\n' | grep -x static)" ] || fail "Python project without static"
+    else
+        # Without Python the project owns its checks: only a failing `check` stub.
+        for unwanted in src tests Dockerfile .python-version; do
+            [ ! -e "$dest/$unwanted" ] || fail "$unwanted rendered without Python"
+        done
+        if grep -rq "uv sync\|setup-uv" "$dest/.forgejo" "$dest/.github" 2>/dev/null; then fail "CI uses uv without Python"; fi
+        if (cd "$dest" && just check >/dev/null 2>&1); then fail "the check stub must fail until it is replaced"; fi
+        [ -z "$(cd "$dest" && just --summary | tr ' ' '\n' | grep -x -e static -e fix -e setup)" ] || fail "optional recipes rendered as stubs"
+        (cd "$dest" && git init --quiet 2>/dev/null; touch x.txt; just stop-check </dev/null) || fail "stop-check must pass without a static recipe"
+        rm -f "$dest/x.txt"; rm -rf "$dest/.git"
+    fi
+
     for recipe in "template-update" "doctor" "stop-check" "mddiff" "mddiff develop" "review 1" "issues" "issues some query" "issue 1" "issue-new Title body.md" \
         "issue-new Title body.md type/bug prio/high" "issue-label 1 type/bug" \
         "issue-unlabel 1 type/bug" "issue-blocked-by 2 1" "issue-unblock 2 1" \
@@ -100,8 +114,10 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
 }
 
 for platform in forgejo github both; do
-    for python in root component; do
+    for python in root component none; do
         for is_service in false true; do
+            # Services are Python-only.
+            if [ "$python" = none ] && [ "$is_service" = true ]; then continue; fi
             name="$platform-$python-service_$is_service"
             echo "== $name"
             if render "$work/$name" "$platform" "$python" "$is_service"; then
@@ -181,6 +197,52 @@ for python in root component; do
         fail "copier copy"
     fi
 done
+
+# Without Python: the invalid combinations are refused, and a project that
+# fills in the contract recipes passes its gates.
+echo "== python=none"
+for bad in "is_service=true" "hooks=python"; do
+    if "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD -d project_name=demo-project \
+        -d platform=github -d python=none -d "$bad" "$src" "$work/bad-$bad" >/dev/null 2>&1; then
+        fail "python=none with $bad was accepted"
+    fi
+done
+dest="$work/gates-none"
+if "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
+    -d project_name=demo-project -d org=acme -d forgejo_url=https://forge.example.com \
+    -d platform=forgejo -d python=none -d hooks=minimal -d secrets=env-only \
+    -d agents='[claude, codex]' "$src" "$dest" 2>"$work/copier.log"; then
+    git -C "$dest" init --quiet --initial-branch feat/fresh
+    cat >>"$dest/justfile" <<'RECIPES'
+
+setup:
+    @touch .setup-ran
+
+static:
+    @test ! -e broken.txt
+
+check: static
+    @echo checked
+RECIPES
+    git -C "$dest" add -A
+    [ "$(cd "$dest" && just check 2>/dev/null)" = checked ] || fail "project check does not replace the stub"
+    (cd "$dest" && touch broken.txt && ! just stop-check </dev/null >/dev/null 2>&1) || fail "stop-check ignores a failing static"
+    rm -f "$dest/broken.txt"
+    (cd "$dest" && uvx pre-commit run --all-files >"$work/hooks.log" 2>&1) ||
+        { tail -n 40 "$work/hooks.log" >&2; fail "pre-commit run --all-files (none)"; }
+    # The CI step and the setup script run `setup` only when it exists.
+    step=$(sed -n 's/^ *run: \(if just --summary.*\)$/\1/p' "$dest/.forgejo/workflows/ci.yml")
+    (cd "$dest" && bash -c "$step" && [ -e .setup-ran ]) || fail "CI setup step"
+    # An update keeps the project without Python.
+    git -C "$dest" add -A
+    git -C "$dest" -c user.name=test -c user.email=test@example.com commit --quiet --no-verify -m "initial"
+    (cd "$dest" && just template-update --quiet --defaults --vcs-ref HEAD >"$work/update.log" 2>&1) ||
+        { cat "$work/update.log" >&2; fail "copier update (none)"; }
+    [ ! -e "$dest/pyproject.toml" ] && [ ! -e "$dest/src" ] || fail "update added a Python skeleton"
+else
+    cat "$work/copier.log" >&2
+    fail "copier copy (none)"
+fi
 
 # A project generated when the template still had `workflow_style` must update cleanly.
 echo "== update with stale workflow_style answer"

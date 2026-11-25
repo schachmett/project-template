@@ -2,7 +2,7 @@
 # Code style
 
 Code and test conventions. Process and quality gates are in [workflow.md](workflow.md).
-
+{% if python != 'none' %}
 ## Python
 
 Formatting, import order, lint rules and typing strictness are enforced by ruff and pyright; their configuration in `{% if python == 'root' %}pyproject.toml{% else %}{{ component_dir }}/pyproject.toml{% endif %}` is the reference, and `just fix` applies what can be applied automatically. This file covers only what no tool checks.
@@ -81,6 +81,12 @@ Exclude deliberately unreachable branches with `# pragma: no cover`.
 ### Test ordering
 
 `pytest-randomly` randomises test execution order on every run. This catches hidden test interdependencies early. The seed is printed at the start of each run; use `--randomly-seed=<N>` to reproduce a specific order.
+{%- else %}
+
+## Conventions
+
+<!-- TODO: the conventions of this project's language that no tool checks: naming, structure, error handling, test layout. What a linter enforces does not belong here. -->
+{%- endif %}
 
 ## General
 
