@@ -41,7 +41,7 @@ What becomes easier or harder as a result?
 - [001: `just` is the only interface to the forge](001-just-is-the-forge-interface.md)
 - [002: Release notes live on the forge, not in a changelog file](002-release-notes-on-the-forge.md)
 - [003: Issues and PRs are the only workflow](003-issues-and-prs-only.md)
-- [004: The template is Python-only](004-python-only.md)
+- [004: The template is Python-only](004-python-only.md) — superseded by 014
 - [005: detect-secrets runs without a baseline file](005-detect-secrets-without-baseline.md)
 - [006: No docker-compose file in generated projects](006-no-docker-compose.md)
 - [007: Procedures are skills, docs explain why](007-procedures-are-skills.md)
@@ -51,3 +51,4 @@ What becomes easier or harder as a result?
 - [011: Setup script, `just doctor`, and branch protection as after-copy steps](011-setup-doctor-and-branch-protection.md)
 - [012: Thin, generated adapters per agent tool](012-thin-agent-adapters.md)
 - [013: The project owns `justfile`; template-owned files live in `.copier/`](013-project-owns-justfile.md)
+- [014: Python is optional again](014-python-is-optional.md)

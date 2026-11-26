@@ -24,6 +24,8 @@ The projects are rendered with `secrets=env-only`, so `.env.example` is part of 
 
 After the matrix it renders every `agents` selection (none, claude, codex, both) on Forgejo and GitHub and checks that adapter files exist exactly for the selected agents, that `.claude/skills` is a symlink resolving to the skills, that the JSON files parse, and that the default reviewer in `just review` matches the selection.
 
+For `python=none` it checks in every platform that no Python file, Dockerfile or uv step is rendered, that the `check` stub fails, that no optional recipe is rendered as a stub, and that `stop-check` passes without a `static` recipe. A separate block checks that `is_service=true` and `hooks=python` are refused without Python, and takes a `none` project with `setup`, `static` and `check` filled in through its gates: `check` replaces the stub, `stop-check` fails on a failing `static`, the hooks pass, the CI setup step runs `setup`, and an update adds no Python skeleton.
+
 Then, for one root and one component project with `hooks=python` and `is_service=true`, it checks that a fresh project passes its own gates: `uv sync`, `just check` (ruff, pyright, pytest with the coverage gate) and `pre-commit run --all-files` on a feature branch. This needs network access to PyPI and to github.com (pre-commit hook repos), and it is what catches drift when a new ruff or pyright release starts rejecting the generated code.
 
 It also appends a stale answer to a rendered project's `.copier/answers.yml`, adds a `check` recipe to its root `justfile`, and runs `just template-update`: the update must drop the stale answer, leave the root `justfile` alone, and the project's `check` must win over the template's. This makes sure projects generated before a question was removed still update.
@@ -65,6 +67,6 @@ Things that look like failures but are not:
 | Claude Code | 2.1.327 | adapter checked by hand as described above |
 | Codex | — | not installed; adapter written from the docs |
 | detect-secrets | 1.5.0 | hook run over every rendered project; pinned in the generated pre-commit config |
-| git-cliff | from the generated project's dev dependencies | release notes for root and component layout |
+| git-cliff | latest through `uvx` | `just release` run against the scratch repo |
 
 Update this table when a recipe is re-tested with a newer version.

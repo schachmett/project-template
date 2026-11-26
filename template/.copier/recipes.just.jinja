@@ -25,7 +25,7 @@ static: lint typecheck
 
 # Full CI suite
 check: static test
-{%- else %}
+{%- elif python == 'root' %}
 # Auto-format and fix imports
 fix:
     uv run ruff format
@@ -79,6 +79,8 @@ doctor:
     }
     need git
     need uv
+    just --summary 2>/dev/null | tr ' ' '\n' | grep -qx check ||
+        problem "no 'check' recipe — define it in the justfile; CI and the skills rely on it"
 {%- if hooks != 'none' %}
     need pre-commit
     [ -f .git/hooks/pre-commit ] || problem "pre-commit hooks are not installed — run 'pre-commit install'"
@@ -131,6 +133,8 @@ stop-check:
     input=$(timeout 1 cat 2>/dev/null || true)
     if printf '%s' "$input" | grep -qE '"stop_hook_active" *: *true'; then exit 0; fi
     [ -n "$(git status --porcelain 2>/dev/null)" ] || exit 0
+    # `static` is optional: without it there is nothing fast to run.
+    just --summary 2>/dev/null | tr ' ' '\n' | grep -qx static || exit 0
     if ! out=$(just static 2>&1); then
         printf '%s\n' "$out" | tail -n 60 >&2
         echo "just static fails on the current changes — fix it before stopping" >&2
@@ -439,11 +443,7 @@ release VERSION:
     fi
     notes=$(mktemp)
     trap 'rm -f "$notes"' EXIT
-{%- if python == 'component' %}
-    uv run --project {{ component_dir }} git-cliff --config .copier/cliff.toml --unreleased --tag "$version" --strip header > "$notes"
-{%- else %}
-    uv run git-cliff --config .copier/cliff.toml --unreleased --tag "$version" --strip header > "$notes"
-{%- endif %}
+    uvx git-cliff --config .copier/cliff.toml --unreleased --tag "$version" --strip header > "$notes"
 {%- if platform == 'github' %}
     gh release create "$version" --title "$version" --target main --notes-file "$notes"
 {%- else %}

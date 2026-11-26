@@ -9,3 +9,16 @@ import '.copier/recipes.just'
 # List the available recipes (a bare `just` runs the first recipe of this file)
 default:
     @just --list
+{%- if python == 'none' %}
+
+# The template only relies on recipe names:
+#   check   required   everything that must pass — CI and the agent skills run it
+#   static  optional   fast checks (lint, typecheck) — the agents' Stop hook runs it if it exists
+#   setup   optional   install what the checks need — CI and .copier/setup.sh run it if it exists
+#   fix     optional   auto-format — run before committing if the project has one
+
+# Everything that must pass before a PR (replace this stub)
+check:
+    @echo "error: no checks configured — replace the 'check' recipe in the justfile" >&2
+    @exit 1
+{%- endif %}

@@ -17,6 +17,13 @@ jobs:
           github-token: ${{ '{{' }} secrets.GH_PAT {{ '}}' }}
 {%- endif %}
 
+{%- if python == 'none' %}
+
+      # `setup` is optional: the project installs there what its checks need.
+      - name: Set up
+        run: if just --summary | tr ' ' '\n' | grep -qx setup; then just setup; fi
+{%- else %}
+
       - uses: astral-sh/setup-uv@v5
         with:
           version: "latest"
@@ -27,7 +34,7 @@ jobs:
 
       - name: Install dependencies
         run: {% if python == 'component' %}cd {{ component_dir }} && {% endif %}uv sync --frozen
-
+{%- endif %}
 
       - name: Check
         run: just check

@@ -13,7 +13,7 @@
 .vscode/
 *.swp
 *~
-
+{%- if python != 'none' %}
 
 # Python
 __pycache__/
@@ -27,7 +27,7 @@ dist/
 .pyright/
 htmlcov/
 .coverage*
-
+{%- endif %}
 {%- if secrets == 'env-only' %}
 
 # Secrets

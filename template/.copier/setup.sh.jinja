@@ -69,7 +69,8 @@ if git remote get-url origin >/dev/null 2>&1; then
 fi
 {%- endif %}
 
-{% if python == 'component' %}(cd {{ component_dir }} && uv sync --frozen){% else %}uv sync --frozen{% endif %}
+{% if python == 'component' %}(cd {{ component_dir }} && uv sync --frozen){% elif python == 'root' %}uv sync --frozen{% else %}# `setup` is optional: the project installs there what its checks need.
+if just --summary | tr ' ' '\n' | grep -qx setup; then just setup; fi{% endif %}
 {%- if hooks != 'none' %}
 [ ! -d .git ] || pre-commit install
 {%- endif %}
