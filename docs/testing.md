@@ -14,6 +14,7 @@ Renders every platform × python × is_service combination with `uvx copier` —
 - `just --dry-run` resolves every forge recipe, including `release` and `releases`; `issue-parent` and `forge-protect` exist on GitHub only, `issue-type` only for GitHub organisations, and `type/` labels everywhere else
 - the recipes file calls the CLI of its platform and not the other one
 - no removed question (`workflow_style`) appears in the output
+- without `is_service` no markdown file mentions CD
 - `scripts/check_render.py`: the four skills exist with matching `name` and a `description` in their frontmatter; every relative markdown link resolves; no file mentions a removed doc; no raw `gh`/`fj` command appears in any markdown file
 - `.copier/setup.sh` is executable and parses (`bash -n`)
 - every file ends with exactly one newline and has no trailing whitespace

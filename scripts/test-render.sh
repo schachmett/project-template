@@ -107,6 +107,10 @@ check() { # [RELEASES=false] check DEST PLATFORM [GITHUB_OWNER_TYPE]
     if grep -n "^ *$other " "$dest/.copier/recipes.just"; then fail "justfile calls $other"; fi
 
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
+    # Only a service has a CD workflow; nothing else may refer to one.
+    if ! ls "$dest"/.*/workflows/cd.yml >/dev/null 2>&1 && grep -rnw "CD" "$dest" --include='*.md'; then
+        fail "CD mentioned without a CD workflow"
+    fi
 
     # Skills, markdown links, removed docs, raw gh/fj commands.
     if [ "$releases" = true ]; then
