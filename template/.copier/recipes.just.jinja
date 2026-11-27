@@ -146,7 +146,7 @@ mddiff BASE="main":
     git diff --word-diff=color "$1"...HEAD -- '*.md'
 
 # ── Forge ─────────────────────────────────────────────────────────────────────
-# Issues, PRs and releases on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
+# Issues{% if releases %}, PRs and releases{% else %} and PRs{% endif %} on {% if platform == 'github' %}GitHub (gh){% else %}Forgejo (fj){% endif %}. Bodies are always passed as files.
 {%- if platform != 'github' %}
 
 # fj cannot tell which repo is meant when several remotes exist and the branch
@@ -410,6 +410,7 @@ comment-pr N FILE:
 {%- else %}
     fj -H "$(just _forge-host)" pr comment "$1" --body-file "$2"
 {%- endif %}
+{%- if releases %}
 
 # List releases
 releases:
@@ -448,4 +449,5 @@ release VERSION:
     gh release create "$version" --title "$version" --target main --notes-file "$notes"
 {%- else %}
     fj -H "$(just _forge-host)" release create "$version" --create-tag "$version" --branch main --body "$(cat "$notes")"
+{%- endif %}
 {%- endif %}

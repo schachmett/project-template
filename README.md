@@ -22,7 +22,8 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `github_owner_type` | choice | `personal` | `personal` / `organization`. Asked when platform = github; organizations use native issue types, everything else `type/` labels |
 | `python` | choice | `root` | `root` / `component` / `none` (the project brings its own checks) |
 | `python_version` | choice | `3.14` | `3.14` / `3.13` / `3.12`. Asked with Python |
-| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml`. Python only |
+| `is_service` | bool | `false` | Adds `operations.md`, `Dockerfile`, `cd.yml`. Python only, needs `releases` |
+| `releases` | bool | `true` | Adds the `release` skill, the `release`/`releases` recipes, `cliff.toml` and the "Releases" section in `workflow.md` |
 | `license` | choice | `mit` | `mit` / `agpl` / `proprietary` / `none` |
 | `secrets` | choice | `none` | `sops` / `env-only` / `none` |
 | `hooks` | choice | `minimal` | `minimal` / `python` / `none` |
@@ -30,6 +31,8 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 | `agents` | multi-choice | `[claude]` | `claude`, `codex`, both or none. Selects the adapters; `AGENTS.md` and the skills are always generated |
 
 `hooks=python` and `is_service` need Python. With `python=none` the template generates no Python files and no quality recipes; the project defines `check` (required) and optionally `static`, `setup` and `fix` in its `justfile` ([ADR 014](docs/adr/014-python-is-optional.md)).
+
+`is_service` needs `releases`, because CD is triggered by the release tag. With `releases=false` the template generates no release tooling and does not mention releases anywhere ([ADR 015](docs/adr/015-release-tooling-is-optional.md)).
 
 ## Generated output
 
@@ -43,7 +46,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 ├── CLAUDE.md · .claude/         # (if agents has claude) @AGENTS.md, skills link, deny rules, Stop hook
 ├── .codex/                      # (if agents has codex) command rules, Stop hook
 ├── .agents/skills/              # procedures as SKILL.md files
-│   ├── plan-issue/ · implement-issue/ · review-pr/ · release/
+│   ├── plan-issue/ · implement-issue/ · review-pr/ · release/ (if releases)
 │   └── (one SKILL.md each; they call only just)
 ├── docs/
 │   ├── workflow.md              # gates and why, conventions, quality gates, definition of done
@@ -55,7 +58,7 @@ copier copy https://git.pw13.eu/simon/project-template.git <destination>
 ├── .copier/                     # owned by the template, replaced on update — never edit
 │   ├── recipes.just             # quality, forge and setup recipes (imported by justfile)
 │   ├── setup.sh                 # installs the tools on a clean machine / cloud agent environment
-│   ├── cliff.toml               # git-cliff release notes config
+│   ├── cliff.toml               # (if releases) git-cliff release notes config
 │   └── answers.yml              # copier answers
 ├── justfile                     # owned by the project: imports .copier/recipes.just, holds project recipes
 ├── .pre-commit-config.yaml      # (if hooks ≠ none)
@@ -117,6 +120,7 @@ Answer the new questions; do not pass `--defaults` blindly:
 
 - `agents` — the agent tools you use (`claude`, `codex`).
 - `github_owner_type` (GitHub only) — `organization` if the repository belongs to one, else `personal`. Organisations use native issue types, everything else `type/` labels.
+- `releases` — `false` only if the repository never cuts a release; the release skill, recipes and `cliff.toml` are then removed.
 
 `workflow_style` no longer exists and is dropped. A project with `python: none` stays without Python; its `justfile` must define a `check` recipe, which CI and the skills call.
 
@@ -142,7 +146,7 @@ set allow-duplicate-recipes
 import '.copier/recipes.just'
 ```
 
-A bare `just` runs the first recipe of the root file; add `default:` with `@just --list` if you have none. `just --list` must then show `doctor`, `issues`, `pr`, `release` and the rest.
+A bare `just` runs the first recipe of the root file; add `default:` with `@just --list` if you have none. `just --list` must then show `doctor`, `issues`, `pr`, `release` (with `releases`) and the rest.
 
 **4. Resolve the conflicts.** The template wins for `AGENTS.md`, `.agents/`, `.copier/`, CI workflows and `.pre-commit-config.yaml`; the project wins for `src/`, `tests/`, its own `pyproject.toml` sections, `README.md`, `Dockerfile` and `docs/architecture.md` / `docs/operations.md` content. Things that came up in the trial:
 
@@ -204,4 +208,4 @@ Same procedure with `--data python=none --data hooks=none` (or `minimal`). The t
 just test-render
 ```
 
-Renders every platform × python × is_service combination and checks the output. See [docs/testing.md](docs/testing.md) for what it checks and how forge recipes are smoke-tested, [docs/operations.md](docs/operations.md) for what a forge needs so generated projects work (CI secret), and [docs/adr/](docs/adr/README.md) for design decisions.
+Renders every platform × python × is_service combination, and every platform × python without releases, and checks the output. See [docs/testing.md](docs/testing.md) for what it checks and how forge recipes are smoke-tested, [docs/operations.md](docs/operations.md) for what a forge needs so generated projects work (CI secret), and [docs/adr/](docs/adr/README.md) for design decisions.

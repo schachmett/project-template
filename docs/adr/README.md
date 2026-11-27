@@ -52,3 +52,4 @@ What becomes easier or harder as a result?
 - [012: Thin, generated adapters per agent tool](012-thin-agent-adapters.md)
 - [013: The project owns `justfile`; template-owned files live in `.copier/`](013-project-owns-justfile.md)
 - [014: Python is optional again](014-python-is-optional.md)
+- [015: Release tooling is optional](015-release-tooling-is-optional.md)
