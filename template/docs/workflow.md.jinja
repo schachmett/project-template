@@ -189,7 +189,7 @@ A change is ready to merge when:
 
 Releases are cut from `main` with `just release vX.Y.Z` ([semver](https://semver.org/)), on the human's request; the procedure is the `release` skill.
 
-The recipe refuses to run unless it is on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `.copier/cliff.toml`) and creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}. The tag triggers the CD workflow{% if is_service %}, which builds and pushes the Docker image{% endif %}.
+The recipe refuses to run unless it is on a clean `main` that matches `origin/main`. It generates the release notes from the conventional commits since the last tag (git-cliff, configured in `.copier/cliff.toml`) and creates the tag and the release page on {% if platform == 'github' %}GitHub{% else %}Forgejo{% endif %}.{% if is_service %} The tag triggers the CD workflow, which builds and pushes the Docker image.{% endif %}
 
 There is no `CHANGELOG.md`: the release pages are the changelog (`just releases`), so a release needs no commit and no PR.
 {%- endif %}
