@@ -39,12 +39,12 @@ See [AGENTS.md](AGENTS.md) for the rules, the skills (procedures) and the docume
 
 ### Prerequisites
 
-- [uv](https://docs.astral.sh/uv/) ≥ 0.5{% if python == 'none' %} (runs the template tooling: copier, git-cliff){% endif %}
+- [uv](https://docs.astral.sh/uv/) ≥ 0.5{% if python == 'none' %} (runs the template tooling: copier{% if releases %}, git-cliff{% endif %}){% endif %}
 - [just](https://just.systems/) (task runner)
 {%- if platform == 'github' %}
-- [GitHub CLI](https://cli.github.com/) ≥ 2.105 (issues, PRs, releases through `just`)
+- [GitHub CLI](https://cli.github.com/) ≥ 2.105 (issues{% if releases %}, PRs, releases{% else %} and PRs{% endif %} through `just`)
 {%- else %}
-- [forgejo-cli](https://codeberg.org/forgejo-contrib/forgejo-cli) (`fj`) 0.7 (issues, PRs, releases through `just`)
+- [forgejo-cli](https://codeberg.org/forgejo-contrib/forgejo-cli) (`fj`) 0.7 (issues{% if releases %}, PRs, releases{% else %} and PRs{% endif %} through `just`)
 {%- endif %}
 {%- if python != 'none' %}
 - Python {{ python_version }} (managed by uv via `.python-version`)
@@ -66,4 +66,4 @@ See [AGENTS.md](AGENTS.md) for the rules, the skills (procedures) and the docume
 | `just --list` | Show all available recipes |
 
 
-Issues, PRs and releases are also handled through `just` recipes (`just issues`, `just pr`, `just release`, …) — see [docs/workflow.md](docs/workflow.md).
+Issues{% if releases %}, PRs and releases{% else %} and PRs{% endif %} are also handled through `just` recipes (`just issues`, `just pr`{% if releases %}, `just release`{% endif %}, …) — see [docs/workflow.md](docs/workflow.md).

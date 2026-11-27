@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Render the template for every platform × python × is_service combination and
-# check the result. Run via `just test-render` from the template repo root.
+# Render the template for every platform × python × is_service combination,
+# and without the release tooling for every platform × python, and check the result. Run via `just test-render` from the template repo root.
 set -euo pipefail
 
 repo=$(git rev-parse --show-toplevel)
@@ -25,24 +25,41 @@ fail() {
     failures=$((failures + 1))
 }
 
-render() { # render DEST PLATFORM PYTHON IS_SERVICE [GITHUB_OWNER_TYPE]
+render() { # [AGENTS=…] [RELEASES=false] render DEST PLATFORM PYTHON IS_SERVICE [GITHUB_OWNER_TYPE]
     "${copier[@]}" copy --quiet --defaults --vcs-ref HEAD \
         -d project_name=demo-project -d org=acme \
         -d forgejo_url=https://forge.example.com \
         -d platform="$2" -d python="$3" -d is_service="$4" -d secrets=env-only \
         -d github_owner_type="${5:-personal}" -d agents="${AGENTS:-[claude]}" \
+        -d releases="${RELEASES:-true}" \
         "$src" "$1" 2>"$work/copier.log" || { cat "$work/copier.log" >&2; return 1; }
 }
 
-check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
-    local dest=$1 platform=$2 cli other recipe
+check() { # [RELEASES=false] check DEST PLATFORM [GITHUB_OWNER_TYPE]
+    local dest=$1 platform=$2 releases=${RELEASES:-true} cli other recipe
     if [ "$platform" = github ]; then cli=gh other=fj; else cli=fj other=gh; fi
 
     (cd "$dest" && just --list >/dev/null) || fail "just --list"
     grep -qxF "import '.copier/recipes.just'" "$dest/justfile" || fail "root justfile does not import the template recipes"
     [ "$(cd "$dest" && just --dry-run 2>&1)" = "just --list" ] || fail "a bare 'just' does not list the recipes"
     [ ! -e "$dest/.copier-answers.yml" ] && [ -f "$dest/.copier/answers.yml" ] || fail "answers file is not in .copier/"
-    [ -f "$dest/.copier/cliff.toml" ] && [ ! -e "$dest/cliff.toml" ] || fail "cliff.toml is not in .copier/"
+    if [ "$releases" = true ]; then
+        [ -f "$dest/.copier/cliff.toml" ] && [ ! -e "$dest/cliff.toml" ] || fail "cliff.toml is not in .copier/"
+        for recipe in "releases" "release v1.2.3"; do
+            # shellcheck disable=SC2086
+            (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
+        done
+    else
+        # Without releases nothing of the release tooling is left, not even a mention.
+        # The answers file records the answer; setup.sh downloads tools from release pages.
+        [ ! -e "$dest/.copier/cliff.toml" ] || fail "cliff.toml rendered without releases"
+        [ ! -e "$dest/.agents/skills/release" ] || fail "release skill rendered without releases"
+        [ -z "$(cd "$dest" && just --summary | tr ' ' '\n' | grep -x -e release -e releases)" ] ||
+            fail "release recipes rendered without releases"
+        if grep -rniE "releas|cliff|changelog" "$dest" --exclude=answers.yml | grep -v "/releases/download/"; then
+            fail "release tooling mentioned without releases"
+        fi
+    fi
 
     if [ -e "$dest/pyproject.toml" ] || [ -d "$dest/backend" ]; then
         [ -n "$(cd "$dest" && just --summary | tr ' ' '\n' | grep -x static)" ] || fail "Python project without static"
@@ -64,7 +81,7 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
         "issue-close 1 body.md" "labels" "labels-init" \
         "comment 1 body.md" "prs" "pr Title body.md" "pr-view 1" "pr-body 1 body.md" \
         "pr-diff 1" \
-        "comment-pr 1 body.md" "releases" "release v1.2.3"; do
+        "comment-pr 1 body.md"; do
         # shellcheck disable=SC2086
         (cd "$dest" && just --dry-run $recipe >/dev/null 2>&1) || fail "just --dry-run $recipe"
     done
@@ -92,7 +109,11 @@ check() { # check DEST PLATFORM [GITHUB_OWNER_TYPE]
     if grep -rn "workflow_style" "$dest"; then fail "workflow_style left in output"; fi
 
     # Skills, markdown links, removed docs, raw gh/fj commands.
-    python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
+    if [ "$releases" = true ]; then
+        python3 "$repo/scripts/check_render.py" "$dest" || fail "check_render.py"
+    else
+        python3 "$repo/scripts/check_render.py" --no-releases "$dest" || fail "check_render.py"
+    fi
 
     # Every rendered file ends with exactly one newline and has no trailing
     # whitespace, as the end-of-file-fixer and trailing-whitespace hooks demand.
@@ -135,6 +156,24 @@ for platform in forgejo github both; do
         done
     done
 done
+
+# Without the release tooling. Services are left out: CD is triggered by the
+# release tag, so is_service needs releases.
+for platform in forgejo github both; do
+    for python in root component none; do
+        name="$platform-$python-no_releases"
+        echo "== $name"
+        if RELEASES=false render "$work/$name" "$platform" "$python" false; then
+            RELEASES=false check "$work/$name" "$platform"
+        else
+            fail "copier copy"
+        fi
+    done
+done
+echo "== is_service without releases"
+if RELEASES=false render "$work/bad-service-no-releases" forgejo root true 2>/dev/null; then
+    fail "is_service=true with releases=false was accepted"
+fi
 
 # Adapters are rendered exactly for the selected agents.
 check_agents() { # check_agents DEST "claude codex"
@@ -249,6 +288,8 @@ echo "== update with stale workflow_style answer"
 dest="$work/stale-answer"
 if render "$dest" forgejo root false; then
     echo "workflow_style: direct" >>"$dest/.copier/answers.yml"
+    # ... and before it asked `releases`: the default keeps the release tooling.
+    sed -i '/^releases:/d' "$dest/.copier/answers.yml"
     # The root justfile is the project's: an update must leave its changes alone,
     # and a recipe defined there must win over the template's.
     printf '\ncheck:\n    @echo project-check\n' >>"$dest/justfile"
@@ -262,6 +303,24 @@ if render "$dest" forgejo root false; then
     grep -q "project-check" "$dest/justfile" || fail "update overwrote the project's justfile"
     [ "$(cd "$dest" && just check 2>/dev/null)" = "project-check" ] || fail "project recipe does not override the template's"
     if grep -q workflow_style "$dest/.copier/answers.yml"; then fail "stale answer survived the update"; fi
+    grep -qx "releases: true" "$dest/.copier/answers.yml" || fail "update did not default releases to true"
+    [ -f "$dest/.agents/skills/release/SKILL.md" ] && [ -f "$dest/.copier/cliff.toml" ] &&
+        (cd "$dest" && just --dry-run release v1.2.3 >/dev/null 2>&1) ||
+        fail "update without a releases answer dropped the release tooling"
+
+    # Switching releases off on an update removes the release tooling.
+    echo "== update to releases=false"
+    git -C "$dest" add -A
+    git -C "$dest" -c user.name=test -c user.email=test@example.com \
+        commit --quiet --no-verify -m "updated"
+    (cd "$dest" && just template-update --quiet --defaults --vcs-ref HEAD -d releases=false >"$work/update.log" 2>&1) ||
+        { cat "$work/update.log" >&2; fail "copier update (releases=false)"; }
+    if find "$dest" -name '*.rej' | grep -q .; then fail "copier update left .rej files"; fi
+    if git -C "$dest" grep -q "^<<<<<<<"; then fail "copier update left conflict markers"; fi
+    [ ! -e "$dest/.agents/skills/release" ] && [ ! -e "$dest/.copier/cliff.toml" ] ||
+        fail "update to releases=false kept release files"
+    [ -z "$(cd "$dest" && just --summary | tr ' ' '\n' | grep -x -e release -e releases)" ] ||
+        fail "update to releases=false kept the release recipes"
 else
     fail "copier copy"
 fi

@@ -1,6 +1,9 @@
 """Checks on one rendered project that are awkward in shell.
 
-Usage: check_render.py PROJECT_DIR
+Usage: check_render.py [--no-releases] PROJECT_DIR
+
+--no-releases: the project was rendered with releases=false, so the release
+skill must be absent.
 
 Prints one line per problem and exits non-zero if there is any.
 """
@@ -9,15 +12,18 @@ import re
 import sys
 from pathlib import Path
 
-SKILLS = ("plan-issue", "implement-issue", "review-pr", "release")
+SKILLS = ("plan-issue", "implement-issue", "review-pr")
+RELEASE_SKILL = "release"
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 RAW_FORGE_CLI = re.compile(r"(^|[`\s])(gh|fj) (-H \S+ )?(issue|pr|release|repo|milestone|label|api)\b", re.MULTILINE)
 REMOVED_DOCS = ("agent-workflow.md", "quality-gates.md", "docs/testing.md")
 
 
-def check_skills(root: Path) -> list[str]:
+def check_skills(root: Path, releases: bool) -> list[str]:
     problems: list[str] = []
-    for name in SKILLS:
+    if not releases and (root / ".agents" / "skills" / RELEASE_SKILL).exists():
+        problems.append(f"unexpected skill: {RELEASE_SKILL}")
+    for name in (*SKILLS, RELEASE_SKILL) if releases else SKILLS:
         path = root / ".agents" / "skills" / name / "SKILL.md"
         if not path.is_file():
             problems.append(f"missing skill: {name}")
@@ -58,8 +64,10 @@ def check_markdown(root: Path) -> list[str]:
 
 
 def main() -> int:
-    root = Path(sys.argv[1])
-    problems = check_skills(root) + check_markdown(root)
+    args = sys.argv[1:]
+    releases = "--no-releases" not in args
+    root = Path(next(arg for arg in args if arg != "--no-releases"))
+    problems = check_skills(root, releases) + check_markdown(root)
     for problem in problems:
         print(problem)
     return 1 if problems else 0

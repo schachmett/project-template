@@ -28,6 +28,9 @@ _exclude:
   - "{% if 'claude' not in agents %}CLAUDE.md{% endif %}"
   - "{% if 'claude' not in agents %}.claude{% endif %}"
   - "{% if 'codex' not in agents %}.codex{% endif %}"
+  # Release tooling (only if releases)
+  - "{% if not releases %}.agents/skills/release{% endif %}"
+  - "{% if not releases %}.copier/cliff.toml{% endif %}"
   # Conditional pre-commit
   - "{% if hooks == 'none' %}.pre-commit-config.yaml{% endif %}"
   # Conditional Dockerfile (only if is_service)
@@ -141,6 +144,12 @@ is_service:
   help: "Does this project run as a long-running service? (adds Dockerfile, operations.md, CD pipeline; Python only)"
   default: false
   validator: "{% if is_service and python == 'none' %}is_service needs a Python project{% endif %}"
+
+releases:
+  type: bool
+  help: "Does this project cut versioned releases? (adds the release skill, the release recipes and the git-cliff config; required by is_service)"
+  default: true
+  validator: "{% if is_service and not releases %}is_service needs releases: CD is triggered by the release tag{% endif %}"
 
 license:
   type: str
